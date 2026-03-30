@@ -14,7 +14,7 @@
   ],
   "scripts": {
     "dev": "bun run --watch src/index.tsx",
-    "build": "bun build src/index.tsx --outdir dist --target bun --minify",
+    "build": "bun build src/index.tsx --outdir dist --target bun --minify && sed -i '1s|^// @bun|#!/usr/bin/env bun|' dist/index.js && chmod +x dist/index.js",
     "prepublishOnly": "bun run build"
   },
   "keywords": [

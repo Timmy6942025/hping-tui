@@ -274,9 +274,7 @@ function ConfigPanel({
   return (
     <box flexDirection="column" flexGrow={1} paddingX={1}>
       <box marginBottom={1}>
-        <text>
-          <strong>Configuration</strong>
-        </text>
+        <text attributes={TextAttributes.BOLD}>Configuration</text>
       </box>
 
       <box flexDirection="column">
@@ -401,10 +399,8 @@ function OutputDisplay({
   return (
     <box flexDirection="column" flexGrow={1} paddingX={1}>
       <box marginBottom={1} flexDirection="row" justifyContent="space-between">
-        <text>
-          <strong>Output</strong>
-          <text attributes={TextAttributes.DIM}> ({filteredLines.length} lines)</text>
-        </text>
+        <text attributes={TextAttributes.BOLD}>Output</text>
+        <text attributes={TextAttributes.DIM}> ({filteredLines.length} lines)</text>
         <text>
           {isRunning ? (
             <span fg="#00ff00">● Running</span>
@@ -432,19 +428,17 @@ function OutputDisplay({
       {stats && (
         <box marginTop={1} flexDirection="column" gap={0}>
           <box flexDirection="row" gap={4}>
-            <text>
-              <span fg="#00ffff">Sent:</span> {stats.packetsSent}
-            </text>
-            <text>
-              <span fg="#00ffff">Recv:</span> {stats.packetsReceived}
-            </text>
-            <text>
-              <span fg="#00ffff">Loss:</span> {stats.packetLoss}
-            </text>
+            <text fg="#00ffff">Sent: </text>
+            <span>{stats.packetsSent}</span>
+            <text fg="#00ffff">Recv: </text>
+            <span>{stats.packetsReceived}</span>
+            <text fg="#00ffff">Loss: </text>
+            <span>{stats.packetLoss}</span>
             {stats.rttAvg && (
-              <text>
-                <span fg="#00ffff">RTT:</span> {stats.rttAvg}
-              </text>
+              <>
+                <text fg="#00ffff">RTT: </text>
+                <span>{stats.rttAvg}</span>
+              </>
             )}
           </box>
           {stats.packetLoss && (
@@ -483,31 +477,29 @@ function StatusBar({
         </box>
       )}
       <box flexDirection="row" justifyContent="space-between">
+        <text fg="#00ff00">{command}</text>
         <text attributes={TextAttributes.DIM}>
-          <span fg="#00ff00">{command}</span>
-        </text>
-        <text attributes={TextAttributes.DIM}>
-          Editing: <strong>{focusedField}</strong>
+          Editing: <span attributes={TextAttributes.BOLD}>{focusedField}</span>
         </text>
       </box>
       <box flexDirection="row" gap={3}>
         <text attributes={TextAttributes.DIM}>
-          <strong>Ctrl+R</strong> Start
+          <span attributes={TextAttributes.BOLD}>Ctrl+R</span> Start
         </text>
         <text attributes={TextAttributes.DIM}>
-          <strong>Ctrl+S</strong> Stop
+          <span attributes={TextAttributes.BOLD}>Ctrl+S</span> Stop
         </text>
         <text attributes={TextAttributes.DIM}>
-          <strong>Ctrl+O</strong> Save log
+          <span attributes={TextAttributes.BOLD}>Ctrl+O</span> Save log
         </text>
         <text attributes={TextAttributes.DIM}>
-          <strong>Ctrl+H</strong> Help
+          <span attributes={TextAttributes.BOLD}>Ctrl+H</span> Help
         </text>
         <text attributes={TextAttributes.DIM}>
-          <strong>Tab</strong> Field
+          <span attributes={TextAttributes.BOLD}>Tab</span> Field
         </text>
         <text attributes={TextAttributes.DIM}>
-          <strong>Ctrl+C</strong> Quit
+          <span attributes={TextAttributes.BOLD}>Ctrl+C</span> Quit
         </text>
       </box>
     </box>
@@ -524,9 +516,7 @@ function Header() {
       borderBottom
       borderStyle="single"
     >
-      <text fg="#00ffff">
-        <strong>hping-tui</strong>
-      </text>
+      <text fg="#00ffff" attributes={TextAttributes.BOLD}>hping-tui</text>
       <text attributes={TextAttributes.DIM}> — Interactive hping3 Terminal UI</text>
       <box flexGrow={1} />
       <text fg="#00ffff">v1.0.0</text>
@@ -586,21 +576,15 @@ function HelpOverlay() {
       paddingY={1}
     >
       <box marginBottom={1}>
-        <text fg="#00ffff">
-          <strong>hping-tui — Help</strong>
-        </text>
+        <text fg="#00ffff" attributes={TextAttributes.BOLD}>hping-tui — Help</text>
       </box>
       {helpItems.map((section) => (
         <box key={section.section} flexDirection="column" marginBottom={1}>
-          <text fg="#ffff00">
-            <strong>{section.section}</strong>
-          </text>
+          <text fg="#ffff00" attributes={TextAttributes.BOLD}>{section.section}</text>
           {section.items.map(([key, desc]) => (
             <box key={key} flexDirection="row">
               <box width={14}>
-                <text fg="#00ff00">
-                  <strong>{key}</strong>
-                </text>
+                <text fg="#00ff00" attributes={TextAttributes.BOLD}>{key}</text>
               </box>
               <text attributes={TextAttributes.DIM}>{desc}</text>
             </box>
@@ -609,7 +593,7 @@ function HelpOverlay() {
       ))}
       <box marginTop={1}>
         <text attributes={TextAttributes.DIM}>
-          Press <strong>Ctrl+H</strong> or <strong>Esc</strong> to close
+          Press <span attributes={TextAttributes.BOLD}>Ctrl+H</span> or <span attributes={TextAttributes.BOLD}>Esc</span> to close
         </text>
       </box>
     </box>

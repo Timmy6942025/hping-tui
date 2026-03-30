@@ -1,20 +1,62 @@
 {
   "name": "hping-tui",
-  "module": "src/index.tsx",
+  "version": "1.0.0",
+  "description": "Interactive terminal UI for hping3 — configure, run, and monitor network packet tests from a beautiful TUI",
+  "main": "dist/index.js",
   "type": "module",
-  "private": true,
+  "bin": {
+    "hping-tui": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
-    "dev": "bun run --watch src/index.tsx"
+    "dev": "bun run --watch src/index.tsx",
+    "build": "bun build src/index.tsx --outdir dist --target bun --minify",
+    "prepublishOnly": "bun run build"
   },
-  "devDependencies": {
-    "@types/bun": "latest"
+  "keywords": [
+    "hping3",
+    "hping",
+    "tui",
+    "terminal",
+    "network",
+    "packet",
+    "opentui",
+    "cli",
+    "networking",
+    "security",
+    "pentest",
+    "firewall",
+    "ping"
+  ],
+  "author": "Timothy",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Timmy6942025/hping-tui.git"
   },
-  "peerDependencies": {
-    "typescript": "^5"
+  "bugs": {
+    "url": "https://github.com/Timmy6942025/hping-tui/issues"
+  },
+  "homepage": "https://github.com/Timmy6942025/hping-tui#readme",
+  "engines": {
+    "node": ">=18.0.0",
+    "bun": ">=1.0.0"
   },
   "dependencies": {
     "@opentui/core": "^0.1.91",
     "@opentui/react": "^0.1.91",
     "react": "^19.2.4"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/react": "^19.0.0",
+    "typescript": "^5"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
   }
 }

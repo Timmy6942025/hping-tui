@@ -2,7 +2,7 @@ import { createCliRenderer, TextAttributes } from "@opentui/core";
 import { createRoot, useKeyboard, useRenderer } from "@opentui/react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { spawn, ChildProcess } from "child_process";
-import { writeFileSync, mkdirSync } from "fs";
+import { writeFileSync, mkdirSync, readFileSync } from "fs";
 import { homedir } from "os";
 import { join } from "path";
 
@@ -31,6 +31,7 @@ interface HpingConfig {
   verbose: boolean;
   noDns: boolean;
   windowSize: string;
+  randSource: boolean;
 }
 
 interface HpingStats {
@@ -53,7 +54,7 @@ const DEFAULT_CONFIG: HpingConfig = {
   target: "",
   protocol: "tcp",
   port: "80",
-  count: "10",
+  count: "",
   interval: "1",
   flags: {
     syn: true,
@@ -72,6 +73,7 @@ const DEFAULT_CONFIG: HpingConfig = {
   verbose: false,
   noDns: false,
   windowSize: "",
+  randSource: false,
 };
 
 const PRESETS: { name: string; icon: string; config: Partial<HpingConfig> }[] = [
@@ -107,7 +109,9 @@ const PRESETS: { name: string; icon: string; config: Partial<HpingConfig> }[] = 
   },
 ];
 
-const FIELD_ORDER = ["target", "port", "count", "interval", "dataLength", "ttl", "windowSize", "spoofIp"] as const;
+const FIELD_ORDER = ["target", "port", "count", "interval", "dataSize", "ttl", "winSize", "spoofIp"] as const;
+
+const NUMERIC_FIELDS = new Set(["port", "count", "interval", "dataSize", "ttl", "winSize"]);
 
 function buildHpingArgs(config: HpingConfig): string[] {
   const args: string[] = [];
@@ -141,6 +145,7 @@ function buildHpingArgs(config: HpingConfig): string[] {
   if (config.fast) args.push("--fast");
   if (config.traceroute) args.push("--traceroute");
   if (config.spoofIp) args.push("-a", config.spoofIp);
+  if (config.randSource) args.push("--rand-source");
 
   args.push(config.target);
   return args;
@@ -219,7 +224,7 @@ function lossBar(loss: string): string {
   return "█".repeat(filled) + "░".repeat(empty);
 }
 
-function PresetBar({ onSelect }: { onSelect: (preset: Partial<HpingConfig>) => void }) {
+function PresetBar() {
   return (
     <box flexDirection="row" gap={1} paddingX={1}>
       {PRESETS.map((p, i) => (
@@ -248,14 +253,18 @@ function ConfigPanel({
     port: "Port",
     count: "Count",
     interval: "Interval",
-    dataLength: "Data Len",
+    dataSize: "Data Size",
     ttl: "TTL",
-    windowSize: "Win Size",
+    winSize: "Win Size",
     spoofIp: "Spoof IP",
   };
 
   const getFieldValue = (id: string): string => {
-    return (config as Record<string, any>)[id] ?? "";
+    const mapping: Record<string, string> = {
+      dataSize: config.dataLength,
+      winSize: config.windowSize,
+    };
+    return mapping[id] ?? (config as Record<string, any>)[id] ?? "";
   };
 
   const protocols: { id: Protocol; label: string; key: string }[] = [
@@ -368,7 +377,7 @@ function ConfigPanel({
           <text
             attributes={config.traceroute ? TextAttributes.BOLD : TextAttributes.DIM}
           >
-            [t] Traceroute
+            [t] Trace
           </text>
           <box width={4} />
           <text
@@ -382,6 +391,12 @@ function ConfigPanel({
             attributes={config.noDns ? TextAttributes.BOLD : TextAttributes.DIM}
           >
             [n] No DNS
+          </text>
+          <box width={4} />
+          <text
+            attributes={config.randSource ? TextAttributes.BOLD : TextAttributes.DIM}
+          >
+            [z] Rand src
           </text>
         </box>
       </box>
@@ -418,7 +433,7 @@ function OutputDisplay({
       </box>
 
       <box flexDirection="column" flexGrow={1} border borderStyle="single">
-        <scrollbox flexGrow={1}>
+        <scrollbox flexGrow={1} stickyScroll stickyStart="bottom">
           {displayLines.map((line, i) => (
             <text key={i} fg={getLineColor(line.type)}>
               <span fg="#555555">[{line.timestamp}]</span> {line.content}
@@ -464,12 +479,10 @@ function OutputDisplay({
 function StatusBar({
   command,
   error,
-  focusedField,
   editingField,
 }: {
   command: string;
   error: string | null;
-  focusedField: string;
   editingField: string | null;
 }) {
   const modeLabel = editingField ? "EDIT" : "NAVIGATE";
@@ -491,7 +504,7 @@ function StatusBar({
         <text fg="#00ff00">{command}</text>
         <text attributes={TextAttributes.DIM}>
           Mode: <span attributes={TextAttributes.BOLD}>{modeLabel}</span>
-          {editingField && <span> | Field: {editingField}</span>}
+          {editingField && <span> | {editingField}</span>}
         </text>
       </box>
       <box flexDirection="row" gap={3}>
@@ -534,7 +547,7 @@ function Header() {
       <text fg="#00ffff" attributes={TextAttributes.BOLD}>hping-tui</text>
       <text attributes={TextAttributes.DIM}> — Interactive hping3 Terminal UI</text>
       <box flexGrow={1} />
-      <text fg="#00ffff">v1.0.0</text>
+      <text fg="#00ffff">v1.0.2</text>
     </box>
   );
 }
@@ -549,13 +562,16 @@ function HelpOverlay() {
       ["Ctrl+H", "Toggle this help screen"],
     ]},
     { section: "Navigation", items: [
-      ["Tab", "Cycle to next input field"],
+      ["Tab / ↓", "Next input field"],
+      ["↑", "Previous input field"],
       ["Enter", "Enter edit mode for focused field"],
       ["Esc", "Exit edit mode / close help"],
     ]},
     { section: "Edit mode", items: [
       ["a-z, 0-9", "Type into field"],
-      ["Backspace", "Delete last character"],
+      ["← →", "Move cursor in field"],
+      ["Backspace", "Delete character before cursor"],
+      ["Del", "Delete character at cursor"],
       ["Enter", "Confirm and exit edit mode"],
       ["Tab", "Confirm and move to next field"],
       ["Esc", "Cancel and exit edit mode"],
@@ -579,6 +595,7 @@ function HelpOverlay() {
       ["t", "Toggle traceroute"],
       ["v", "Toggle verbose"],
       ["n", "Toggle no DNS"],
+      ["z", "Toggle random source IP"],
     ]},
     { section: "Presets", items: [
       ["1-6", "Load preset configuration"],
@@ -627,7 +644,7 @@ function HelpOverlay() {
 function loadConfig(): HpingConfig {
   try {
     const configPath = join(homedir(), ".hping-tui", "config.json");
-    const data = require("fs").readFileSync(configPath, "utf-8");
+    const data = readFileSync(configPath, "utf-8");
     return { ...DEFAULT_CONFIG, ...JSON.parse(data) };
   } catch {
     return { ...DEFAULT_CONFIG };
@@ -651,11 +668,13 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [focusedField, setFocusedField] = useState("target");
   const [editingField, setEditingField] = useState<string | null>(null);
+  const [cursorPos, setCursorPos] = useState(0);
   const [showHelp, setShowHelp] = useState(false);
   const [filter, setFilter] = useState<Set<string>>(
     new Set(["response", "stats", "header", "info", "traceroute", "error"])
   );
   const processRef = useRef<ChildProcess | null>(null);
+  const savedValueRef = useRef<string>("");
   const renderer = useRenderer();
 
   const runHping = useCallback(() => {
@@ -771,14 +790,34 @@ function App() {
   }, [outputLines]);
 
   const startEditing = useCallback((field: string) => {
+    const mapping: Record<string, string> = {
+      dataSize: config.dataLength,
+      winSize: config.windowSize,
+    };
+    savedValueRef.current = mapping[field] ?? (config as Record<string, any>)[field] ?? "";
+    setCursorPos(savedValueRef.current.length);
     setEditingField(field);
-  }, []);
+  }, [config]);
 
   const stopEditing = useCallback((confirm: boolean) => {
     if (!confirm) {
-      setConfig((prev) => ({ ...prev, [editingField!]: "" }));
+      setConfig((prev) => ({ ...prev, [editingField!]: savedValueRef.current }));
     }
     setEditingField(null);
+    setCursorPos(0);
+  }, [editingField]);
+
+  const updateField = useCallback((value: string) => {
+    const field = editingField!;
+    const isNumeric = NUMERIC_FIELDS.has(field);
+    if (isNumeric && value !== "" && !/^\d+$/.test(value)) return;
+
+    const mapping: Record<string, string> = {
+      dataSize: "dataLength",
+      winSize: "windowSize",
+    };
+    const actualField = mapping[field] ?? field;
+    setConfig((prev) => ({ ...prev, [actualField]: value }));
   }, [editingField]);
 
   useKeyboard((key) => {
@@ -819,19 +858,38 @@ function App() {
         return;
       }
 
+      if (key.name === "left") {
+        setCursorPos((p) => Math.max(0, p - 1));
+        return;
+      }
+
+      if (key.name === "right") {
+        const val = (config as Record<string, any>)[editingField] ?? "";
+        setCursorPos((p) => Math.min(val.length, p + 1));
+        return;
+      }
+
       if (key.name === "backspace") {
-        setConfig((prev) => {
-          const val = ((prev as Record<string, any>)[editingField] as string) || "";
-          return { ...prev, [editingField]: val.slice(0, -1) };
-        });
+        const val = (config as Record<string, any>)[editingField] ?? "";
+        if (cursorPos > 0) {
+          updateField(val.slice(0, cursorPos - 1) + val.slice(cursorPos));
+          setCursorPos((p) => p - 1);
+        }
+        return;
+      }
+
+      if (key.name === "delete") {
+        const val = (config as Record<string, any>)[editingField] ?? "";
+        if (cursorPos < val.length) {
+          updateField(val.slice(0, cursorPos) + val.slice(cursorPos + 1));
+        }
         return;
       }
 
       if (key.sequence && key.sequence.length === 1) {
-        setConfig((prev) => {
-          const val = ((prev as Record<string, any>)[editingField] as string) || "";
-          return { ...prev, [editingField]: val + key.sequence };
-        });
+        const val = (config as Record<string, any>)[editingField] ?? "";
+        updateField(val.slice(0, cursorPos) + key.sequence + val.slice(cursorPos));
+        setCursorPos((p) => p + 1);
         return;
       }
 
@@ -853,10 +911,17 @@ function App() {
       return;
     }
 
-    if (key.name === "tab") {
+    if (key.name === "tab" || key.name === "down") {
       const idx = FIELD_ORDER.indexOf(focusedField as any);
       const nextIdx = (idx + 1) % FIELD_ORDER.length;
       setFocusedField(FIELD_ORDER[nextIdx]);
+      return;
+    }
+
+    if (key.name === "up") {
+      const idx = FIELD_ORDER.indexOf(focusedField as any);
+      const prevIdx = (idx - 1 + FIELD_ORDER.length) % FIELD_ORDER.length;
+      setFocusedField(FIELD_ORDER[prevIdx]);
       return;
     }
 
@@ -941,6 +1006,10 @@ function App() {
       setConfig((prev) => ({ ...prev, noDns: !prev.noDns }));
       return;
     }
+    if (key.name === "z" && !key.ctrl) {
+      setConfig((prev) => ({ ...prev, randSource: !prev.randSource }));
+      return;
+    }
 
     if (key.shift && key.name === "r") {
       setFilter((prev) => {
@@ -1003,7 +1072,7 @@ function App() {
   return (
     <box flexDirection="column" flexGrow={1}>
       <Header />
-      <PresetBar onSelect={(preset) => setConfig((prev) => ({ ...prev, ...preset }))} />
+      <PresetBar />
 
       <box flexDirection="row" flexGrow={1}>
         <box width={36} border borderStyle="single" flexDirection="column">
@@ -1027,7 +1096,6 @@ function App() {
       <StatusBar
         command={commandString}
         error={error}
-        focusedField={focusedField}
         editingField={editingField}
       />
 

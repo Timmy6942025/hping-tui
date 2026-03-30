@@ -237,9 +237,11 @@ function PresetBar({ onSelect }: { onSelect: (preset: Partial<HpingConfig>) => v
 function ConfigPanel({
   config,
   focusedField,
+  editingField,
 }: {
   config: HpingConfig;
   focusedField: string;
+  editingField: string | null;
 }) {
   const fieldLabels: Record<string, string> = {
     target: "Target",
@@ -294,10 +296,15 @@ function ConfigPanel({
             <box flexGrow={1}>
               <text
                 attributes={
-                  focusedField === fieldId ? TextAttributes.UNDERLINE : undefined
+                  editingField === fieldId
+                    ? TextAttributes.BOLD | TextAttributes.UNDERLINE
+                    : focusedField === fieldId
+                    ? TextAttributes.UNDERLINE
+                    : undefined
                 }
               >
                 {getFieldValue(fieldId)}
+                {editingField === fieldId ? "█" : ""}
               </text>
             </box>
           </box>
@@ -348,33 +355,33 @@ function ConfigPanel({
           <text
             attributes={config.flood ? TextAttributes.BOLD : TextAttributes.DIM}
           >
-            [Shift+F] Flood
+            [g] Flood
           </text>
           <box width={4} />
           <text
             attributes={config.fast ? TextAttributes.BOLD : TextAttributes.DIM}
           >
-            [Shift+A] Fast
+            [k] Fast
           </text>
         </box>
         <box flexDirection="row">
           <text
             attributes={config.traceroute ? TextAttributes.BOLD : TextAttributes.DIM}
           >
-            [Shift+T] Traceroute
+            [t] Traceroute
           </text>
           <box width={4} />
           <text
             attributes={config.verbose ? TextAttributes.BOLD : TextAttributes.DIM}
           >
-            [Shift+V] Verbose
+            [v] Verbose
           </text>
         </box>
         <box flexDirection="row">
           <text
             attributes={config.noDns ? TextAttributes.BOLD : TextAttributes.DIM}
           >
-            [Shift+N] No DNS
+            [n] No DNS
           </text>
         </box>
       </box>
@@ -458,11 +465,15 @@ function StatusBar({
   command,
   error,
   focusedField,
+  editingField,
 }: {
   command: string;
   error: string | null;
   focusedField: string;
+  editingField: string | null;
 }) {
+  const modeLabel = editingField ? "EDIT" : "NAVIGATE";
+
   return (
     <box
       flexDirection="column"
@@ -473,13 +484,14 @@ function StatusBar({
     >
       {error && (
         <box>
-          <text fg="#ff4444">⚠ {error}</text>
+          <text fg="#ff4444">{error}</text>
         </box>
       )}
       <box flexDirection="row" justifyContent="space-between">
         <text fg="#00ff00">{command}</text>
         <text attributes={TextAttributes.DIM}>
-          Editing: <span attributes={TextAttributes.BOLD}>{focusedField}</span>
+          Mode: <span attributes={TextAttributes.BOLD}>{modeLabel}</span>
+          {editingField && <span> | Field: {editingField}</span>}
         </text>
       </box>
       <box flexDirection="row" gap={3}>
@@ -496,7 +508,10 @@ function StatusBar({
           <span attributes={TextAttributes.BOLD}>Ctrl+H</span> Help
         </text>
         <text attributes={TextAttributes.DIM}>
-          <span attributes={TextAttributes.BOLD}>Tab</span> Field
+          <span attributes={TextAttributes.BOLD}>Tab</span> Next field
+        </text>
+        <text attributes={TextAttributes.DIM}>
+          <span attributes={TextAttributes.BOLD}>Enter</span> Edit
         </text>
         <text attributes={TextAttributes.DIM}>
           <span attributes={TextAttributes.BOLD}>Ctrl+C</span> Quit
@@ -532,9 +547,18 @@ function HelpOverlay() {
       ["Ctrl+O", "Save output to log file"],
       ["Ctrl+C", "Quit application"],
       ["Ctrl+H", "Toggle this help screen"],
-      ["Tab", "Cycle through input fields"],
-      ["Enter", "Confirm field, move to next"],
-      ["Backspace", "Delete character"],
+    ]},
+    { section: "Navigation", items: [
+      ["Tab", "Cycle to next input field"],
+      ["Enter", "Enter edit mode for focused field"],
+      ["Esc", "Exit edit mode / close help"],
+    ]},
+    { section: "Edit mode", items: [
+      ["a-z, 0-9", "Type into field"],
+      ["Backspace", "Delete last character"],
+      ["Enter", "Confirm and exit edit mode"],
+      ["Tab", "Confirm and move to next field"],
+      ["Esc", "Cancel and exit edit mode"],
     ]},
     { section: "Protocol", items: [
       ["Ctrl+1", "TCP mode"],
@@ -550,16 +574,16 @@ function HelpOverlay() {
       ["u", "Toggle URG flag"],
     ]},
     { section: "Options", items: [
-      ["Shift+F", "Toggle flood mode"],
-      ["Shift+A", "Toggle fast mode"],
-      ["Shift+T", "Toggle traceroute"],
-      ["Shift+V", "Toggle verbose"],
-      ["Shift+N", "Toggle no DNS resolution"],
+      ["g", "Toggle flood mode"],
+      ["k", "Toggle fast mode"],
+      ["t", "Toggle traceroute"],
+      ["v", "Toggle verbose"],
+      ["n", "Toggle no DNS"],
     ]},
     { section: "Presets", items: [
       ["1-6", "Load preset configuration"],
     ]},
-    { section: "Filters", items: [
+    { section: "Output Filters", items: [
       ["Shift+R", "Toggle response lines"],
       ["Shift+S", "Toggle stats lines"],
       ["Shift+E", "Toggle error lines"],
@@ -616,7 +640,6 @@ function saveConfig(config: HpingConfig) {
     mkdirSync(configDir, { recursive: true });
     writeFileSync(join(configDir, "config.json"), JSON.stringify(config, null, 2));
   } catch {
-    // ignore
   }
 }
 
@@ -627,6 +650,7 @@ function App() {
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [focusedField, setFocusedField] = useState("target");
+  const [editingField, setEditingField] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const [filter, setFilter] = useState<Set<string>>(
     new Set(["response", "stats", "header", "info", "traceroute", "error"])
@@ -746,6 +770,17 @@ function App() {
     }
   }, [outputLines]);
 
+  const startEditing = useCallback((field: string) => {
+    setEditingField(field);
+  }, []);
+
+  const stopEditing = useCallback((confirm: boolean) => {
+    if (!confirm) {
+      setConfig((prev) => ({ ...prev, [editingField!]: "" }));
+    }
+    setEditingField(null);
+  }, [editingField]);
+
   useKeyboard((key) => {
     if (showHelp && (key.ctrl && key.name === "h" || key.name === "escape")) {
       setShowHelp(false);
@@ -761,6 +796,45 @@ function App() {
 
     if (key.ctrl && key.name === "h") {
       setShowHelp((v) => !v);
+      return;
+    }
+
+    if (editingField) {
+      if (key.name === "escape") {
+        stopEditing(false);
+        return;
+      }
+
+      if (key.name === "enter") {
+        stopEditing(true);
+        return;
+      }
+
+      if (key.name === "tab") {
+        stopEditing(true);
+        const idx = FIELD_ORDER.indexOf(editingField as any);
+        const nextIdx = (idx + 1) % FIELD_ORDER.length;
+        setFocusedField(FIELD_ORDER[nextIdx]);
+        setEditingField(FIELD_ORDER[nextIdx]);
+        return;
+      }
+
+      if (key.name === "backspace") {
+        setConfig((prev) => {
+          const val = ((prev as Record<string, any>)[editingField] as string) || "";
+          return { ...prev, [editingField]: val.slice(0, -1) };
+        });
+        return;
+      }
+
+      if (key.sequence && key.sequence.length === 1) {
+        setConfig((prev) => {
+          const val = ((prev as Record<string, any>)[editingField] as string) || "";
+          return { ...prev, [editingField]: val + key.sequence };
+        });
+        return;
+      }
+
       return;
     }
 
@@ -786,18 +860,8 @@ function App() {
       return;
     }
 
-    if (key.name === "backspace") {
-      setConfig((prev) => {
-        const val = ((prev as Record<string, any>)[focusedField] as string) || "";
-        return { ...prev, [focusedField]: val.slice(0, -1) };
-      });
-      return;
-    }
-
     if (key.name === "enter") {
-      const idx = FIELD_ORDER.indexOf(focusedField as any);
-      const nextIdx = (idx + 1) % FIELD_ORDER.length;
-      setFocusedField(FIELD_ORDER[nextIdx]);
+      startEditing(focusedField);
       return;
     }
 
@@ -857,23 +921,23 @@ function App() {
       return;
     }
 
-    if (key.shift && key.name === "f") {
+    if (key.name === "g" && !key.ctrl) {
       setConfig((prev) => ({ ...prev, flood: !prev.flood }));
       return;
     }
-    if (key.shift && key.name === "a") {
+    if (key.name === "k" && !key.ctrl) {
       setConfig((prev) => ({ ...prev, fast: !prev.fast }));
       return;
     }
-    if (key.shift && key.name === "t") {
+    if (key.name === "t" && !key.ctrl) {
       setConfig((prev) => ({ ...prev, traceroute: !prev.traceroute }));
       return;
     }
-    if (key.shift && key.name === "v") {
+    if (key.name === "v" && !key.ctrl) {
       setConfig((prev) => ({ ...prev, verbose: !prev.verbose }));
       return;
     }
-    if (key.shift && key.name === "n") {
+    if (key.name === "n" && !key.ctrl) {
       setConfig((prev) => ({ ...prev, noDns: !prev.noDns }));
       return;
     }
@@ -919,14 +983,6 @@ function App() {
       }
       return;
     }
-
-    if (key.sequence && key.sequence.length === 1 && focusedField) {
-      setConfig((prev) => {
-        const val = ((prev as Record<string, any>)[focusedField] as string) || "";
-        return { ...prev, [focusedField]: val + key.sequence };
-      });
-      return;
-    }
   });
 
   useEffect(() => {
@@ -954,6 +1010,7 @@ function App() {
           <ConfigPanel
             config={config}
             focusedField={focusedField}
+            editingField={editingField}
           />
         </box>
 
@@ -971,6 +1028,7 @@ function App() {
         command={commandString}
         error={error}
         focusedField={focusedField}
+        editingField={editingField}
       />
 
       {showHelp && (

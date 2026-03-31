@@ -276,15 +276,15 @@ function App() {
   return (
     <box flexDirection="column" flexGrow={1}>
       {/* Header */}
-      <box flexDirection="row" alignItems="center" paddingX={1} paddingY={0} borderBottom borderStyle="single">
+      <box flexDirection="row" alignItems="center" paddingX={1} borderBottom borderStyle="single">
         <text fg="#00ffff" attributes={TextAttributes.BOLD}>hping-tui</text>
         <text attributes={TextAttributes.DIM}> — Interactive hping3 Terminal UI</text>
         <box flexGrow={1} />
-        <text fg="#00ffff">v1.0.5</text>
+        <text fg="#00ffff">v1.0.6</text>
       </box>
 
       {/* Presets */}
-      <box flexDirection="row" gap={2} paddingX={1} paddingY={0}>
+      <box flexDirection="row" gap={2} paddingX={1}>
         {PRESETS.map((p) => (
           <box key={p.name}>
             <text attributes={TextAttributes.DIM}>{p.key}</text>
@@ -297,58 +297,58 @@ function App() {
       <box flexDirection="row" flexGrow={1}>
         {/* Left panel - Config */}
         <box width={40} border borderStyle="single" flexDirection="column" paddingX={1}>
-          <box marginBottom={1}>
+          <box>
             <text attributes={TextAttributes.BOLD}>Configuration</text>
           </box>
 
-          <box flexDirection="column" gap={0}>
+          <box flexDirection="column">
             <box flexDirection="row">
               <text width={8} attributes={focusedField === "target" ? TextAttributes.BOLD : TextAttributes.DIM}>Target:</text>
-              <input value={config.target} onChange={(v) => updateField("target", v)} focused={focusedField === "target"} flexGrow={1} placeholder="host" />
+              <input value={config.target} onChange={(v) => updateField("target", v)} focused={focusedField === "target"} width={28} placeholder="host" />
             </box>
             <box flexDirection="row">
               <text width={8} attributes={focusedField === "port" ? TextAttributes.BOLD : TextAttributes.DIM}>Port:</text>
-              <input value={config.port} onChange={(v) => updateField("port", v)} focused={focusedField === "port"} flexGrow={1} placeholder="80" />
+              <input value={config.port} onChange={(v) => updateField("port", v)} focused={focusedField === "port"} width={28} placeholder="80" />
             </box>
             <box flexDirection="row">
               <text width={8} attributes={focusedField === "count" ? TextAttributes.BOLD : TextAttributes.DIM}>Count:</text>
-              <input value={config.count} onChange={(v) => updateField("count", v)} focused={focusedField === "count"} flexGrow={1} placeholder="inf" />
+              <input value={config.count} onChange={(v) => updateField("count", v)} focused={focusedField === "count"} width={28} placeholder="inf" />
             </box>
             <box flexDirection="row">
               <text width={8} attributes={focusedField === "interval" ? TextAttributes.BOLD : TextAttributes.DIM}>Intvl:</text>
-              <input value={config.interval} onChange={(v) => updateField("interval", v)} focused={focusedField === "interval"} flexGrow={1} placeholder="1" />
+              <input value={config.interval} onChange={(v) => updateField("interval", v)} focused={focusedField === "interval"} width={28} placeholder="1" />
             </box>
             <box flexDirection="row">
               <text width={8} attributes={focusedField === "dataSize" ? TextAttributes.BOLD : TextAttributes.DIM}>Data:</text>
-              <input value={config.dataLength} onChange={(v) => updateField("dataSize", v)} focused={focusedField === "dataSize"} flexGrow={1} placeholder="0" />
+              <input value={config.dataLength} onChange={(v) => updateField("dataSize", v)} focused={focusedField === "dataSize"} width={28} placeholder="0" />
             </box>
             <box flexDirection="row">
               <text width={8} attributes={focusedField === "ttl" ? TextAttributes.BOLD : TextAttributes.DIM}>TTL:</text>
-              <input value={config.ttl} onChange={(v) => updateField("ttl", v)} focused={focusedField === "ttl"} flexGrow={1} placeholder="64" />
+              <input value={config.ttl} onChange={(v) => updateField("ttl", v)} focused={focusedField === "ttl"} width={28} placeholder="64" />
             </box>
             <box flexDirection="row">
               <text width={8} attributes={focusedField === "winSize" ? TextAttributes.BOLD : TextAttributes.DIM}>Win:</text>
-              <input value={config.windowSize} onChange={(v) => updateField("winSize", v)} focused={focusedField === "winSize"} flexGrow={1} placeholder="" />
+              <input value={config.windowSize} onChange={(v) => updateField("winSize", v)} focused={focusedField === "winSize"} width={28} placeholder="" />
             </box>
             <box flexDirection="row">
               <text width={8} attributes={focusedField === "spoofIp" ? TextAttributes.BOLD : TextAttributes.DIM}>Spoof:</text>
-              <input value={config.spoofIp} onChange={(v) => updateField("spoofIp", v)} focused={focusedField === "spoofIp"} flexGrow={1} placeholder="" />
+              <input value={config.spoofIp} onChange={(v) => updateField("spoofIp", v)} focused={focusedField === "spoofIp"} width={28} placeholder="" />
             </box>
           </box>
 
-          <box marginTop={1} marginBottom={1}>
+          <box>
             <text attributes={TextAttributes.DIM}>Protocol:</text>
           </box>
-          <box flexDirection="row" gap={2} marginBottom={1}>
+          <box flexDirection="row" gap={2}>
             <text attributes={config.protocol === "tcp" ? TextAttributes.BOLD : TextAttributes.DIM}>[Ctrl+1] TCP</text>
             <text attributes={config.protocol === "udp" ? TextAttributes.BOLD : TextAttributes.DIM}>[Ctrl+2] UDP</text>
             <text attributes={config.protocol === "icmp" ? TextAttributes.BOLD : TextAttributes.DIM}>[Ctrl+3] ICMP</text>
           </box>
 
-          <box marginBottom={1}>
+          <box>
             <text attributes={TextAttributes.DIM}>Flags:</text>
           </box>
-          <box flexDirection="column" gap={0} marginBottom={1}>
+          <box flexDirection="column">
             <box flexDirection="row" gap={2}>
               <text attributes={config.flags.syn ? TextAttributes.BOLD : TextAttributes.DIM}>[Ctrl+Y] SYN</text>
               <text attributes={config.flags.ack ? TextAttributes.BOLD : TextAttributes.DIM}>[Ctrl+A] ACK</text>
@@ -363,10 +363,10 @@ function App() {
             </box>
           </box>
 
-          <box marginBottom={1}>
+          <box>
             <text attributes={TextAttributes.DIM}>Options:</text>
           </box>
-          <box flexDirection="column" gap={0}>
+          <box flexDirection="column">
             <box flexDirection="row" gap={2}>
               <text attributes={config.flood ? TextAttributes.BOLD : TextAttributes.DIM}>[Ctrl+G] Flood</text>
               <text attributes={config.fast ? TextAttributes.BOLD : TextAttributes.DIM}>[Ctrl+K] Fast</text>
@@ -384,7 +384,7 @@ function App() {
 
         {/* Right panel - Output */}
         <box flexGrow={1} flexDirection="column" paddingX={1}>
-          <box marginBottom={1} flexDirection="row" justifyContent="space-between">
+          <box flexDirection="row" justifyContent="space-between">
             <text attributes={TextAttributes.BOLD}>Output</text>
             <text attributes={TextAttributes.DIM}> ({filteredLines.length} lines)</text>
             <text>
@@ -406,7 +406,7 @@ function App() {
           </box>
 
           {stats && (
-            <box marginTop={1} flexDirection="column" gap={0}>
+            <box flexDirection="column">
               <box flexDirection="row" gap={4}>
                 <text><span fg="#00ffff">Sent:</span> {stats.packetsSent}</text>
                 <text><span fg="#00ffff">Recv:</span> {stats.packetsReceived}</text>
@@ -420,7 +420,7 @@ function App() {
       </box>
 
       {/* Status bar */}
-      <box flexDirection="column" borderTop borderStyle="single" paddingX={1} paddingY={0}>
+      <box flexDirection="column" borderTop borderStyle="single" paddingX={1}>
         {error && <text fg="#ff4444">{error}</text>}
         <box flexDirection="row" justifyContent="space-between">
           <text fg="#00ff00">hping3 {cmd}</text>
@@ -439,10 +439,10 @@ function App() {
       {/* Help overlay */}
       {showHelp && (
         <box position="absolute" top={3} left={2} right={2} bottom={3} border borderStyle="double" paddingX={2} paddingY={1}>
-          <box marginBottom={1}>
+          <box>
             <text fg="#00ffff" attributes={TextAttributes.BOLD}>hping-tui — Help</text>
           </box>
-          <box flexDirection="column" gap={0}>
+          <box flexDirection="column">
             <text fg="#ffff00" attributes={TextAttributes.BOLD}>Controls</text>
             <box flexDirection="row"><box width={14}><text fg="#00ff00" attributes={TextAttributes.BOLD}>Ctrl+R</text></box><text attributes={TextAttributes.DIM}>Start hping3</text></box>
             <box flexDirection="row"><box width={14}><text fg="#00ff00" attributes={TextAttributes.BOLD}>Ctrl+S</text></box><text attributes={TextAttributes.DIM}>Stop hping3</text></box>
@@ -467,7 +467,7 @@ function App() {
             <box flexDirection="row"><box width={14}><text fg="#00ff00" attributes={TextAttributes.BOLD}>Shift+R/S</text></box><text attributes={TextAttributes.DIM}>Toggle response/stats</text></box>
             <box flexDirection="row"><box width={14}><text fg="#00ff00" attributes={TextAttributes.BOLD}>Shift+E/I</text></box><text attributes={TextAttributes.DIM}>Toggle error/info</text></box>
           </box>
-          <box marginTop={1}>
+          <box>
             <text attributes={TextAttributes.DIM}>Press <span attributes={TextAttributes.BOLD}>Ctrl+H</span> or <span attributes={TextAttributes.BOLD}>Esc</span> to close</text>
           </box>
         </box>

@@ -14,14 +14,7 @@ interface HpingConfig {
   port: string;
   count: string;
   interval: string;
-  flags: {
-    syn: boolean;
-    ack: boolean;
-    fin: boolean;
-    rst: boolean;
-    psh: boolean;
-    urg: boolean;
-  };
+  flags: { syn: boolean; ack: boolean; fin: boolean; rst: boolean; psh: boolean; urg: boolean };
   dataLength: string;
   ttl: string;
   flood: boolean;
@@ -56,14 +49,7 @@ const DEFAULT_CONFIG: HpingConfig = {
   port: "80",
   count: "",
   interval: "1",
-  flags: {
-    syn: true,
-    ack: false,
-    fin: false,
-    rst: false,
-    psh: false,
-    urg: false,
-  },
+  flags: { syn: true, ack: false, fin: false, rst: false, psh: false, urg: false },
   dataLength: "0",
   ttl: "64",
   flood: false,
@@ -76,134 +62,71 @@ const DEFAULT_CONFIG: HpingConfig = {
   randSource: false,
 };
 
-const PRESETS: { name: string; icon: string; config: Partial<HpingConfig> }[] = [
-  {
-    name: "SYN Scan",
-    icon: "S",
-    config: { protocol: "tcp", flags: { syn: true, ack: false, fin: false, rst: false, psh: false, urg: false }, port: "80", count: "10" },
-  },
-  {
-    name: "Firewall Test",
-    icon: "F",
-    config: { protocol: "tcp", flags: { syn: true, ack: true, fin: false, rst: false, psh: false, urg: false }, port: "443", count: "20" },
-  },
-  {
-    name: "ICMP Ping",
-    icon: "I",
-    config: { protocol: "icmp", flags: { syn: false, ack: false, fin: false, rst: false, psh: false, urg: false }, port: "", count: "10" },
-  },
-  {
-    name: "Traceroute",
-    icon: "T",
-    config: { protocol: "tcp", traceroute: true, flags: { syn: true, ack: false, fin: false, rst: false, psh: false, urg: false }, port: "80", count: "30" },
-  },
-  {
-    name: "UDP Test",
-    icon: "U",
-    config: { protocol: "udp", flags: { syn: false, ack: false, fin: false, rst: false, psh: false, urg: false }, port: "53", count: "10" },
-  },
-  {
-    name: "XMAS Scan",
-    icon: "X",
-    config: { protocol: "tcp", flags: { syn: false, ack: false, fin: true, rst: false, psh: true, urg: true }, port: "80", count: "5" },
-  },
+const PRESETS: { name: string; key: string; config: Partial<HpingConfig> }[] = [
+  { name: "SYN Scan", key: "F1", config: { protocol: "tcp", flags: { syn: true, ack: false, fin: false, rst: false, psh: false, urg: false }, port: "80", count: "10" } },
+  { name: "Firewall", key: "F2", config: { protocol: "tcp", flags: { syn: true, ack: true, fin: false, rst: false, psh: false, urg: false }, port: "443", count: "20" } },
+  { name: "ICMP", key: "F3", config: { protocol: "icmp", flags: { syn: false, ack: false, fin: false, rst: false, psh: false, urg: false }, port: "", count: "10" } },
+  { name: "Traceroute", key: "F4", config: { protocol: "tcp", traceroute: true, flags: { syn: true, ack: false, fin: false, rst: false, psh: false, urg: false }, port: "80", count: "30" } },
+  { name: "UDP", key: "F5", config: { protocol: "udp", flags: { syn: false, ack: false, fin: false, rst: false, psh: false, urg: false }, port: "53", count: "10" } },
+  { name: "XMAS", key: "F6", config: { protocol: "tcp", flags: { syn: false, ack: false, fin: true, rst: false, psh: true, urg: true }, port: "80", count: "5" } },
 ];
 
 const INPUT_FIELDS = ["target", "port", "count", "interval", "dataSize", "ttl", "winSize", "spoofIp"] as const;
 
-function buildHpingArgs(config: HpingConfig): string[] {
-  const args: string[] = [];
-
-  if (config.noDns) args.push("-n");
-  if (config.verbose) args.push("-V");
-
-  if (config.protocol === "icmp") args.push("-1");
-  else if (config.protocol === "udp") args.push("-2");
-
-  if (config.protocol !== "icmp" && config.port) {
-    args.push("-p", config.port);
-  }
-
-  if (config.count) args.push("-c", config.count);
-  if (config.interval) args.push("-i", config.interval);
-  if (config.dataLength && parseInt(config.dataLength) > 0)
-    args.push("-d", config.dataLength);
-  if (config.ttl) args.push("--ttl", config.ttl);
-  if (config.windowSize && parseInt(config.windowSize) > 0)
-    args.push("--win", config.windowSize);
-
-  if (config.flags.syn) args.push("-S");
-  if (config.flags.ack) args.push("-A");
-  if (config.flags.fin) args.push("-F");
-  if (config.flags.rst) args.push("-R");
-  if (config.flags.psh) args.push("-P");
-  if (config.flags.urg) args.push("-U");
-
-  if (config.flood) args.push("--flood");
-  if (config.fast) args.push("--fast");
-  if (config.traceroute) args.push("--traceroute");
-  if (config.spoofIp) args.push("-a", config.spoofIp);
-  if (config.randSource) args.push("--rand-source");
-
-  args.push(config.target);
-  return args;
-}
-
-function buildCommandString(config: HpingConfig): string {
-  const args = buildHpingArgs(config);
-  return `hping3 ${args.join(" ")}`;
+function buildHpingArgs(c: HpingConfig): string[] {
+  const a: string[] = [];
+  if (c.noDns) a.push("-n");
+  if (c.verbose) a.push("-V");
+  if (c.protocol === "icmp") a.push("-1");
+  else if (c.protocol === "udp") a.push("-2");
+  if (c.protocol !== "icmp" && c.port) a.push("-p", c.port);
+  if (c.count) a.push("-c", c.count);
+  if (c.interval) a.push("-i", c.interval);
+  if (c.dataLength && parseInt(c.dataLength) > 0) a.push("-d", c.dataLength);
+  if (c.ttl) a.push("--ttl", c.ttl);
+  if (c.windowSize && parseInt(c.windowSize) > 0) a.push("--win", c.windowSize);
+  if (c.flags.syn) a.push("-S");
+  if (c.flags.ack) a.push("-A");
+  if (c.flags.fin) a.push("-F");
+  if (c.flags.rst) a.push("-R");
+  if (c.flags.psh) a.push("-P");
+  if (c.flags.urg) a.push("-U");
+  if (c.flood) a.push("--flood");
+  if (c.fast) a.push("--fast");
+  if (c.traceroute) a.push("--traceroute");
+  if (c.spoofIp) a.push("-a", c.spoofIp);
+  if (c.randSource) a.push("--rand-source");
+  a.push(c.target);
+  return a;
 }
 
 function parseStatsLine(line: string): Partial<HpingStats> | null {
-  const stats: Partial<HpingStats> = {};
-
-  const sentMatch = line.match(/(\d+)\s+packets?\s+transmitted/);
-  if (sentMatch && sentMatch[1]) stats.packetsSent = parseInt(sentMatch[1]);
-
-  const recvMatch = line.match(/(\d+)\s+packets?\s+received/);
-  if (recvMatch && recvMatch[1]) stats.packetsReceived = parseInt(recvMatch[1]);
-
-  const lossMatch = line.match(/([\d.]+)%\s+packets?\s+lost/);
-  if (lossMatch && lossMatch[1]) stats.packetLoss = lossMatch[1] + "%";
-
-  const rttMatch = line.match(
-    /round-trip\s+min\/avg\/max\s+=\s+([\d.]+)\/([\d.]+)\/([\d.]+)\/?([\d.]*)\s+ms/
-  );
-  if (rttMatch && rttMatch[1] && rttMatch[2] && rttMatch[3]) {
-    stats.rttMin = rttMatch[1] + " ms";
-    stats.rttAvg = rttMatch[2] + " ms";
-    stats.rttMax = rttMatch[3] + " ms";
-    if (rttMatch[4]) stats.rttMdev = rttMatch[4] + " ms";
+  const s: Partial<HpingStats> = {};
+  const m1 = line.match(/(\d+)\s+packets?\s+transmitted/);
+  if (m1?.[1]) s.packetsSent = parseInt(m1[1]);
+  const m2 = line.match(/(\d+)\s+packets?\s+received/);
+  if (m2?.[1]) s.packetsReceived = parseInt(m2[1]);
+  const m3 = line.match(/([\d.]+)%\s+packets?\s+lost/);
+  if (m3?.[1]) s.packetLoss = m3[1] + "%";
+  const m4 = line.match(/round-trip\s+min\/avg\/max\s+=\s+([\d.]+)\/([\d.]+)\/([\d.]+)\/?([\d.]*)\s+ms/);
+  if (m4?.[1] && m4[2] && m4[3]) {
+    s.rttMin = m4[1] + " ms"; s.rttAvg = m4[2] + " ms"; s.rttMax = m4[3] + " ms";
+    if (m4[4]) s.rttMdev = m4[4] + " ms";
   }
-
-  return Object.keys(stats).length > 0 ? stats : null;
+  return Object.keys(s).length > 0 ? s : null;
 }
 
 function parseOutputLine(line: string): OutputLine {
   let type = "info";
   if (line.includes("len=") || line.includes("seq=")) type = "response";
   else if (line.includes("traceroute") || line.includes("HOP")) type = "traceroute";
-  else if (
-    line.includes("packets transmitted") ||
-    line.includes("packets received") ||
-    line.includes("round-trip")
-  ) type = "stats";
+  else if (line.includes("packets transmitted") || line.includes("packets received") || line.includes("round-trip")) type = "stats";
   else if (line.startsWith("HPING")) type = "header";
-  else if (
-    line.toLowerCase().includes("error") ||
-    line.toLowerCase().includes("fail") ||
-    line.toLowerCase().includes("denied") ||
-    line.includes("can't")
-  ) type = "error";
-
-  return {
-    type,
-    content: line,
-    timestamp: new Date().toLocaleTimeString(),
-  };
+  else if (line.toLowerCase().includes("error") || line.toLowerCase().includes("fail") || line.includes("can't")) type = "error";
+  return { type, content: line, timestamp: new Date().toLocaleTimeString() };
 }
 
-function getLineColor(type: string): string {
+function lineColor(type: string): string {
   switch (type) {
     case "response": return "#00ff00";
     case "stats": return "#ffff00";
@@ -215,495 +138,23 @@ function getLineColor(type: string): string {
 }
 
 function lossBar(loss: string): string {
-  const num = parseFloat(loss);
-  if (isNaN(num)) return "";
-  const filled = Math.round((num / 100) * 10);
-  const empty = 10 - filled;
-  return "\u2588".repeat(filled) + "\u2591".repeat(empty);
-}
-
-function PresetBar() {
-  return (
-    <box flexDirection="row" gap={1} paddingX={1}>
-      {PRESETS.map((p, i) => (
-        <box key={p.name}>
-          <text attributes={TextAttributes.DIM}>
-            [{i + 1}]
-          </text>
-          <text> {p.icon} {p.name} </text>
-        </box>
-      ))}
-    </box>
-  );
-}
-
-function ConfigPanel({
-  config,
-  focusedField,
-  setConfig,
-}: {
-  config: HpingConfig;
-  focusedField: string;
-  setConfig: (fn: (prev: HpingConfig) => HpingConfig) => void;
-}) {
-  const isFocused = (field: string) => focusedField === field;
-
-  const updateField = (field: string, value: string) => {
-    const mapping: Record<string, string> = {
-      dataSize: "dataLength",
-      winSize: "windowSize",
-    };
-    const actualField = mapping[field] ?? field;
-    setConfig((prev) => ({ ...prev, [actualField]: value }));
-  };
-
-  const protocols: { id: Protocol; label: string; key: string }[] = [
-    { id: "tcp", label: "TCP", key: "1" },
-    { id: "udp", label: "UDP", key: "2" },
-    { id: "icmp", label: "ICMP", key: "3" },
-  ];
-
-  const flagOptions: { id: keyof HpingConfig["flags"]; label: string; key: string }[] = [
-    { id: "syn", label: "SYN", key: "s" },
-    { id: "ack", label: "ACK", key: "a" },
-    { id: "fin", label: "FIN", key: "f" },
-    { id: "rst", label: "RST", key: "r" },
-    { id: "psh", label: "PSH", key: "p" },
-    { id: "urg", label: "URG", key: "u" },
-  ];
-
-  return (
-    <box flexDirection="column" flexGrow={1} paddingX={1}>
-      <box marginBottom={1}>
-        <text attributes={TextAttributes.BOLD}>Configuration</text>
-      </box>
-
-      <box flexDirection="column" gap={0}>
-        <box flexDirection="row">
-          <text width={8} attributes={isFocused("target") ? TextAttributes.BOLD : TextAttributes.DIM}>
-            Target:
-          </text>
-          <input
-            value={config.target}
-            onChange={(v) => updateField("target", v)}
-            focused={isFocused("target")}
-            flexGrow={1}
-            placeholder="host or IP"
-          />
-        </box>
-        <box flexDirection="row">
-          <text width={8} attributes={isFocused("port") ? TextAttributes.BOLD : TextAttributes.DIM}>
-            Port:
-          </text>
-          <input
-            value={config.port}
-            onChange={(v) => updateField("port", v)}
-            focused={isFocused("port")}
-            flexGrow={1}
-            placeholder="80"
-          />
-        </box>
-        <box flexDirection="row">
-          <text width={8} attributes={isFocused("count") ? TextAttributes.BOLD : TextAttributes.DIM}>
-            Count:
-          </text>
-          <input
-            value={config.count}
-            onChange={(v) => updateField("count", v)}
-            focused={isFocused("count")}
-            flexGrow={1}
-            placeholder="inf"
-          />
-        </box>
-        <box flexDirection="row">
-          <text width={8} attributes={isFocused("interval") ? TextAttributes.BOLD : TextAttributes.DIM}>
-            Interval:
-          </text>
-          <input
-            value={config.interval}
-            onChange={(v) => updateField("interval", v)}
-            focused={isFocused("interval")}
-            flexGrow={1}
-            placeholder="1"
-          />
-        </box>
-        <box flexDirection="row">
-          <text width={8} attributes={isFocused("dataSize") ? TextAttributes.BOLD : TextAttributes.DIM}>
-            Data Sz:
-          </text>
-          <input
-            value={config.dataLength}
-            onChange={(v) => updateField("dataSize", v)}
-            focused={isFocused("dataSize")}
-            flexGrow={1}
-            placeholder="0"
-          />
-        </box>
-        <box flexDirection="row">
-          <text width={8} attributes={isFocused("ttl") ? TextAttributes.BOLD : TextAttributes.DIM}>
-            TTL:
-          </text>
-          <input
-            value={config.ttl}
-            onChange={(v) => updateField("ttl", v)}
-            focused={isFocused("ttl")}
-            flexGrow={1}
-            placeholder="64"
-          />
-        </box>
-        <box flexDirection="row">
-          <text width={8} attributes={isFocused("winSize") ? TextAttributes.BOLD : TextAttributes.DIM}>
-            Win Sz:
-          </text>
-          <input
-            value={config.windowSize}
-            onChange={(v) => updateField("winSize", v)}
-            focused={isFocused("winSize")}
-            flexGrow={1}
-            placeholder=""
-          />
-        </box>
-        <box flexDirection="row">
-          <text width={8} attributes={isFocused("spoofIp") ? TextAttributes.BOLD : TextAttributes.DIM}>
-            Spoof:
-          </text>
-          <input
-            value={config.spoofIp}
-            onChange={(v) => updateField("spoofIp", v)}
-            focused={isFocused("spoofIp")}
-            flexGrow={1}
-            placeholder=""
-          />
-        </box>
-      </box>
-
-      <box marginTop={1} marginBottom={1}>
-        <text attributes={TextAttributes.DIM}>Protocol:</text>
-      </box>
-      <box flexDirection="row" gap={2} marginBottom={1}>
-        {protocols.map((p) => (
-          <box key={p.id}>
-            <text
-              attributes={
-                config.protocol === p.id
-                  ? TextAttributes.BOLD
-                  : TextAttributes.DIM
-              }
-            >
-              [{p.key}] {p.label}
-            </text>
-          </box>
-        ))}
-      </box>
-
-      <box marginBottom={1}>
-        <text attributes={TextAttributes.DIM}>Flags:</text>
-      </box>
-      <box flexDirection="row" gap={1} marginBottom={1}>
-        {flagOptions.map((f) => (
-          <box key={f.id}>
-            <text
-              attributes={
-                config.flags[f.id] ? TextAttributes.BOLD : TextAttributes.DIM
-              }
-            >
-              [{f.key}] {f.label}
-            </text>
-          </box>
-        ))}
-      </box>
-
-      <box marginBottom={1}>
-        <text attributes={TextAttributes.DIM}>Options:</text>
-      </box>
-      <box flexDirection="column" gap={0}>
-        <box flexDirection="row">
-          <text
-            attributes={config.flood ? TextAttributes.BOLD : TextAttributes.DIM}
-          >
-            [g] Flood
-          </text>
-          <box width={4} />
-          <text
-            attributes={config.fast ? TextAttributes.BOLD : TextAttributes.DIM}
-          >
-            [k] Fast
-          </text>
-        </box>
-        <box flexDirection="row">
-          <text
-            attributes={config.traceroute ? TextAttributes.BOLD : TextAttributes.DIM}
-          >
-            [t] Trace
-          </text>
-          <box width={4} />
-          <text
-            attributes={config.verbose ? TextAttributes.BOLD : TextAttributes.DIM}
-          >
-            [v] Verbose
-          </text>
-        </box>
-        <box flexDirection="row">
-          <text
-            attributes={config.noDns ? TextAttributes.BOLD : TextAttributes.DIM}
-          >
-            [n] No DNS
-          </text>
-          <box width={4} />
-          <text
-            attributes={config.randSource ? TextAttributes.BOLD : TextAttributes.DIM}
-          >
-            [z] Rand src
-          </text>
-        </box>
-      </box>
-    </box>
-  );
-}
-
-function OutputDisplay({
-  lines,
-  stats,
-  isRunning,
-  filter,
-}: {
-  lines: OutputLine[];
-  stats: HpingStats | null;
-  isRunning: boolean;
-  filter: Set<string>;
-}) {
-  const filteredLines = lines.filter((l) => filter.has(l.type));
-  const displayLines = filteredLines.slice(-300);
-
-  return (
-    <box flexDirection="column" flexGrow={1} paddingX={1}>
-      <box marginBottom={1} flexDirection="row" justifyContent="space-between">
-        <text attributes={TextAttributes.BOLD}>Output</text>
-        <text attributes={TextAttributes.DIM}> ({filteredLines.length} lines)</text>
-        <text>
-          {isRunning ? (
-            <span fg="#00ff00">● Running</span>
-          ) : (
-            <span fg="#888888">○ Stopped</span>
-          )}
-        </text>
-      </box>
-
-      <box flexDirection="column" flexGrow={1} border borderStyle="single">
-        <scrollbox flexGrow={1} stickyScroll stickyStart="bottom">
-          {displayLines.map((line, i) => (
-            <text key={i} fg={getLineColor(line.type)}>
-              <span fg="#555555">[{line.timestamp}]</span> {line.content}
-            </text>
-          ))}
-          {displayLines.length === 0 && (
-            <text attributes={TextAttributes.DIM}>
-              Press Ctrl+R to start hping3...
-            </text>
-          )}
-        </scrollbox>
-      </box>
-
-      {stats && (
-        <box marginTop={1} flexDirection="column" gap={0}>
-          <box flexDirection="row" gap={4}>
-            <text fg="#00ffff">Sent: </text>
-            <span>{stats.packetsSent}</span>
-            <text fg="#00ffff">Recv: </text>
-            <span>{stats.packetsReceived}</span>
-            <text fg="#00ffff">Loss: </text>
-            <span>{stats.packetLoss}</span>
-            {stats.rttAvg && (
-              <>
-                <text fg="#00ffff">RTT: </text>
-                <span>{stats.rttAvg}</span>
-              </>
-            )}
-          </box>
-          {stats.packetLoss && (
-            <box>
-              <text fg="#ff8800">
-                {lossBar(stats.packetLoss)}
-              </text>
-            </box>
-          )}
-        </box>
-      )}
-    </box>
-  );
-}
-
-function StatusBar({
-  command,
-  error,
-  focusedField,
-}: {
-  command: string;
-  error: string | null;
-  focusedField: string;
-}) {
-  return (
-    <box
-      flexDirection="column"
-      borderTop
-      borderStyle="single"
-      paddingX={1}
-      paddingY={0}
-    >
-      {error && (
-        <box>
-          <text fg="#ff4444">{error}</text>
-        </box>
-      )}
-      <box flexDirection="row" justifyContent="space-between">
-        <text fg="#00ff00">{command}</text>
-        <text attributes={TextAttributes.DIM}>
-          Field: <span attributes={TextAttributes.BOLD}>{focusedField}</span>
-        </text>
-      </box>
-      <box flexDirection="row" gap={3}>
-        <text attributes={TextAttributes.DIM}>
-          <span attributes={TextAttributes.BOLD}>Ctrl+R</span> Start
-        </text>
-        <text attributes={TextAttributes.DIM}>
-          <span attributes={TextAttributes.BOLD}>Ctrl+S</span> Stop
-        </text>
-        <text attributes={TextAttributes.DIM}>
-          <span attributes={TextAttributes.BOLD}>Ctrl+O</span> Save log
-        </text>
-        <text attributes={TextAttributes.DIM}>
-          <span attributes={TextAttributes.BOLD}>Ctrl+H</span> Help
-        </text>
-        <text attributes={TextAttributes.DIM}>
-          <span attributes={TextAttributes.BOLD}>Tab</span> Next field
-        </text>
-        <text attributes={TextAttributes.DIM}>
-          <span attributes={TextAttributes.BOLD}>Ctrl+C</span> Quit
-        </text>
-      </box>
-    </box>
-  );
-}
-
-function Header() {
-  return (
-    <box
-      flexDirection="row"
-      alignItems="center"
-      paddingX={1}
-      paddingY={0}
-      borderBottom
-      borderStyle="single"
-    >
-      <text fg="#00ffff" attributes={TextAttributes.BOLD}>hping-tui</text>
-      <text attributes={TextAttributes.DIM}> — Interactive hping3 Terminal UI</text>
-      <box flexGrow={1} />
-      <text fg="#00ffff">v1.0.3</text>
-    </box>
-  );
-}
-
-function HelpOverlay() {
-  const helpItems = [
-    { section: "Controls", items: [
-      ["Ctrl+R", "Start / restart hping3"],
-      ["Ctrl+S", "Stop running process"],
-      ["Ctrl+O", "Save output to log file"],
-      ["Ctrl+C", "Quit application"],
-      ["Ctrl+H", "Toggle this help screen"],
-    ]},
-    { section: "Navigation", items: [
-      ["Tab / ↓", "Next input field"],
-      ["Shift+Tab / ↑", "Previous input field"],
-    ]},
-    { section: "Input fields", items: [
-      ["Type", "Enter text in focused field"],
-      ["← →", "Move cursor in field"],
-      ["Backspace", "Delete character"],
-      ["Home / End", "Jump to start / end"],
-    ]},
-    { section: "Protocol", items: [
-      ["Ctrl+1", "TCP mode"],
-      ["Ctrl+2", "UDP mode"],
-      ["Ctrl+3", "ICMP mode"],
-    ]},
-    { section: "TCP Flags", items: [
-      ["s", "Toggle SYN flag"],
-      ["a", "Toggle ACK flag"],
-      ["f", "Toggle FIN flag"],
-      ["r", "Toggle RST flag"],
-      ["p", "Toggle PSH flag"],
-      ["u", "Toggle URG flag"],
-    ]},
-    { section: "Options", items: [
-      ["g", "Toggle flood mode"],
-      ["k", "Toggle fast mode"],
-      ["t", "Toggle traceroute"],
-      ["v", "Toggle verbose"],
-      ["n", "Toggle no DNS"],
-      ["z", "Toggle random source IP"],
-    ]},
-    { section: "Presets", items: [
-      ["1-6", "Load preset configuration"],
-    ]},
-    { section: "Output Filters", items: [
-      ["Shift+R", "Toggle response lines"],
-      ["Shift+S", "Toggle stats lines"],
-      ["Shift+E", "Toggle error lines"],
-      ["Shift+I", "Toggle info lines"],
-    ]},
-  ];
-
-  return (
-    <box
-      flexDirection="column"
-      border
-      borderStyle="double"
-      paddingX={2}
-      paddingY={1}
-    >
-      <box marginBottom={1}>
-        <text fg="#00ffff" attributes={TextAttributes.BOLD}>hping-tui — Help</text>
-      </box>
-      {helpItems.map((section) => (
-        <box key={section.section} flexDirection="column" marginBottom={1}>
-          <text fg="#ffff00" attributes={TextAttributes.BOLD}>{section.section}</text>
-          {section.items.map(([key, desc]) => (
-            <box key={key} flexDirection="row">
-              <box width={16}>
-                <text fg="#00ff00" attributes={TextAttributes.BOLD}>{key}</text>
-              </box>
-              <text attributes={TextAttributes.DIM}>{desc}</text>
-            </box>
-          ))}
-        </box>
-      ))}
-      <box marginTop={1}>
-        <text attributes={TextAttributes.DIM}>
-          Press <span attributes={TextAttributes.BOLD}>Ctrl+H</span> or <span attributes={TextAttributes.BOLD}>Esc</span> to close
-        </text>
-      </box>
-    </box>
-  );
+  const n = parseFloat(loss);
+  if (isNaN(n)) return "";
+  const f = Math.round((n / 100) * 10);
+  return "\u2588".repeat(f) + "\u2591".repeat(10 - f);
 }
 
 function loadConfig(): HpingConfig {
   try {
-    const configPath = join(homedir(), ".hping-tui", "config.json");
-    const data = readFileSync(configPath, "utf-8");
-    return { ...DEFAULT_CONFIG, ...JSON.parse(data) };
-  } catch {
-    return { ...DEFAULT_CONFIG };
-  }
+    return { ...DEFAULT_CONFIG, ...JSON.parse(readFileSync(join(homedir(), ".hping-tui", "config.json"), "utf-8")) };
+  } catch { return { ...DEFAULT_CONFIG }; }
 }
 
-function saveConfig(config: HpingConfig) {
+function saveConfig(c: HpingConfig) {
   try {
-    const configDir = join(homedir(), ".hping-tui");
-    mkdirSync(configDir, { recursive: true });
-    writeFileSync(join(configDir, "config.json"), JSON.stringify(config, null, 2));
-  } catch {
-  }
+    mkdirSync(join(homedir(), ".hping-tui"), { recursive: true });
+    writeFileSync(join(homedir(), ".hping-tui", "config.json"), JSON.stringify(c, null, 2));
+  } catch { /* ignore */ }
 }
 
 function App() {
@@ -714,363 +165,315 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [focusedField, setFocusedField] = useState("target");
   const [showHelp, setShowHelp] = useState(false);
-  const [filter, setFilter] = useState<Set<string>>(
-    new Set(["response", "stats", "header", "info", "traceroute", "error"])
-  );
+  const [filter, setFilter] = useState<Set<string>>(new Set(["response", "stats", "header", "info", "traceroute", "error"]));
   const processRef = useRef<ChildProcess | null>(null);
   const renderer = useRenderer();
 
   const runHping = useCallback(() => {
-    if (!config.target) {
-      setError("Target host is required");
-      return;
-    }
-
-    if (processRef.current) {
-      processRef.current.kill("SIGTERM");
-    }
-
-    setError(null);
-    setOutputLines([]);
-    setStats(null);
-
+    if (!config.target) { setError("Target host is required"); return; }
+    if (processRef.current) processRef.current.kill("SIGTERM");
+    setError(null); setOutputLines([]); setStats(null);
     const args = buildHpingArgs(config);
-    const command = `hping3 ${args.join(" ")}`;
-
     setOutputLines([
-      { type: "header", content: `$ ${command}`, timestamp: new Date().toLocaleTimeString() },
+      { type: "header", content: `$ hping3 ${args.join(" ")}`, timestamp: new Date().toLocaleTimeString() },
       { type: "info", content: `Starting hping3 to ${config.target}...`, timestamp: new Date().toLocaleTimeString() },
     ]);
-
     try {
       const proc = spawn("sudo", ["hping3", ...args], { shell: false });
-
-      processRef.current = proc;
-      setIsRunning(true);
-
+      processRef.current = proc; setIsRunning(true);
       proc.stdout.on("data", (data: Buffer) => {
-        const text = data.toString();
-        const lines = text.split("\n").filter((l) => l.trim());
-
-        const parsedLines = lines.map(parseOutputLine);
-        setOutputLines((prev) => [...prev, ...parsedLines]);
-
-        for (const line of lines) {
-          const parsed = parseStatsLine(line);
-          if (parsed) {
-            setStats((prev) => ({ ...prev, ...parsed } as HpingStats));
-          }
-        }
+        const lines = data.toString().split("\n").filter((l) => l.trim());
+        setOutputLines((prev) => [...prev, ...lines.map(parseOutputLine)]);
+        for (const line of lines) { const p = parseStatsLine(line); if (p) setStats((prev) => ({ ...prev, ...p } as HpingStats)); }
       });
-
       proc.stderr.on("data", (data: Buffer) => {
-        const text = data.toString();
-        const lines = text.split("\n").filter((l) => l.trim());
-        const parsedLines = lines.map((l) => ({
-          type: "error" as const,
-          content: l,
-          timestamp: new Date().toLocaleTimeString(),
-        }));
-        setOutputLines((prev) => [...prev, ...parsedLines]);
+        const lines = data.toString().split("\n").filter((l) => l.trim());
+        setOutputLines((prev) => [...prev, ...lines.map((l) => ({ type: "error", content: l, timestamp: new Date().toLocaleTimeString() } as OutputLine))]);
       });
-
       proc.on("close", (code: number) => {
-        setIsRunning(false);
-        processRef.current = null;
-        setOutputLines((prev) => [
-          ...prev,
-          {
-            type: "info",
-            content: `Process exited with code ${code}`,
-            timestamp: new Date().toLocaleTimeString(),
-          },
-        ]);
+        setIsRunning(false); processRef.current = null;
+        setOutputLines((prev) => [...prev, { type: "info", content: `Process exited with code ${code}`, timestamp: new Date().toLocaleTimeString() }]);
       });
-
       proc.on("error", (err: Error) => {
-        setIsRunning(false);
-        processRef.current = null;
+        setIsRunning(false); processRef.current = null;
         setError(`Failed to start hping3: ${err.message}`);
-        setOutputLines((prev) => [
-          ...prev,
-          { type: "error", content: `Error: ${err.message}`, timestamp: new Date().toLocaleTimeString() },
-        ]);
       });
-    } catch (err: any) {
-      setError(`Failed to spawn process: ${err.message}`);
-      setIsRunning(false);
-    }
+    } catch (err: any) { setError(`Failed to spawn: ${err.message}`); setIsRunning(false); }
   }, [config]);
 
   const stopHping = useCallback(() => {
     if (processRef.current) {
-      processRef.current.kill("SIGTERM");
-      processRef.current = null;
-      setIsRunning(false);
-      setOutputLines((prev) => [
-        ...prev,
-        { type: "info", content: "Process stopped by user", timestamp: new Date().toLocaleTimeString() },
-      ]);
+      processRef.current.kill("SIGTERM"); processRef.current = null; setIsRunning(false);
+      setOutputLines((prev) => [...prev, { type: "info", content: "Process stopped", timestamp: new Date().toLocaleTimeString() }]);
     }
   }, []);
 
   const saveLog = useCallback(() => {
     try {
-      const logDir = join(homedir(), ".hping-tui");
-      mkdirSync(logDir, { recursive: true });
-      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-      const logPath = join(logDir, `hping-${timestamp}.log`);
-      const content = outputLines.map((l) => `[${l.timestamp}] ${l.content}`).join("\n");
-      writeFileSync(logPath, content);
-      setError(null);
-      setOutputLines((prev) => [
-        ...prev,
-        { type: "info", content: `Log saved to ${logPath}`, timestamp: new Date().toLocaleTimeString() },
-      ]);
-    } catch (err: any) {
-      setError(`Failed to save log: ${err.message}`);
-    }
+      mkdirSync(join(homedir(), ".hping-tui"), { recursive: true });
+      const path = join(homedir(), ".hping-tui", `hping-${new Date().toISOString().replace(/[:.]/g, "-")}.log`);
+      writeFileSync(path, outputLines.map((l) => `[${l.timestamp}] ${l.content}`).join("\n"));
+      setOutputLines((prev) => [...prev, { type: "info", content: `Log saved to ${path}`, timestamp: new Date().toLocaleTimeString() }]);
+    } catch (err: any) { setError(`Failed to save log: ${err.message}`); }
   }, [outputLines]);
 
-  const cycleField = useCallback((direction: 1 | -1) => {
+  const cycleField = useCallback((dir: 1 | -1) => {
     setFocusedField((prev) => {
       const idx = INPUT_FIELDS.indexOf(prev as typeof INPUT_FIELDS[number]);
-      const nextIdx = (idx + direction + INPUT_FIELDS.length) % INPUT_FIELDS.length;
-      return INPUT_FIELDS[nextIdx];
+      return INPUT_FIELDS[(idx + dir + INPUT_FIELDS.length) % INPUT_FIELDS.length];
     });
   }, []);
 
-  useKeyboard((key) => {
-    if (showHelp && (key.ctrl && key.name === "h" || key.name === "escape")) {
-      setShowHelp(false);
-      return;
-    }
-
-    if (key.ctrl && key.name === "c") {
-      stopHping();
-      saveConfig(config);
-      renderer.destroy();
-      return;
-    }
-
-    if (key.ctrl && key.name === "h") {
-      setShowHelp((v) => !v);
-      return;
-    }
-
-    if (key.ctrl && key.name === "r") {
-      runHping();
-      return;
-    }
-
-    if (key.ctrl && key.name === "s") {
-      stopHping();
-      return;
-    }
-
-    if (key.ctrl && key.name === "o") {
-      saveLog();
-      return;
-    }
-
-    if (key.name === "tab" && !key.shift) {
-      cycleField(1);
-      return;
-    }
-
-    if ((key.name === "tab" && key.shift) || key.name === "iso_left_tab") {
-      cycleField(-1);
-      return;
-    }
-
-    if (key.name === "down") {
-      cycleField(1);
-      return;
-    }
-
-    if (key.name === "up") {
-      cycleField(-1);
-      return;
-    }
-
-    if (key.ctrl && key.name === "1") {
-      setConfig((prev) => ({ ...prev, protocol: "tcp" }));
-      return;
-    }
-    if (key.ctrl && key.name === "2") {
-      setConfig((prev) => ({ ...prev, protocol: "udp" }));
-      return;
-    }
-    if (key.ctrl && key.name === "3") {
-      setConfig((prev) => ({ ...prev, protocol: "icmp" }));
-      return;
-    }
-
-    if (key.name === "s" && !key.ctrl) {
-      setConfig((prev) => ({
-        ...prev,
-        flags: { ...prev.flags, syn: !prev.flags.syn },
-      }));
-      return;
-    }
-    if (key.name === "a" && !key.ctrl) {
-      setConfig((prev) => ({
-        ...prev,
-        flags: { ...prev.flags, ack: !prev.flags.ack },
-      }));
-      return;
-    }
-    if (key.name === "f" && !key.ctrl) {
-      setConfig((prev) => ({
-        ...prev,
-        flags: { ...prev.flags, fin: !prev.flags.fin },
-      }));
-      return;
-    }
-    if (key.name === "r" && !key.ctrl) {
-      setConfig((prev) => ({
-        ...prev,
-        flags: { ...prev.flags, rst: !prev.flags.rst },
-      }));
-      return;
-    }
-    if (key.name === "p" && !key.ctrl) {
-      setConfig((prev) => ({
-        ...prev,
-        flags: { ...prev.flags, psh: !prev.flags.psh },
-      }));
-      return;
-    }
-    if (key.name === "u" && !key.ctrl) {
-      setConfig((prev) => ({
-        ...prev,
-        flags: { ...prev.flags, urg: !prev.flags.urg },
-      }));
-      return;
-    }
-
-    if (key.name === "g" && !key.ctrl) {
-      setConfig((prev) => ({ ...prev, flood: !prev.flood }));
-      return;
-    }
-    if (key.name === "k" && !key.ctrl) {
-      setConfig((prev) => ({ ...prev, fast: !prev.fast }));
-      return;
-    }
-    if (key.name === "t" && !key.ctrl) {
-      setConfig((prev) => ({ ...prev, traceroute: !prev.traceroute }));
-      return;
-    }
-    if (key.name === "v" && !key.ctrl) {
-      setConfig((prev) => ({ ...prev, verbose: !prev.verbose }));
-      return;
-    }
-    if (key.name === "n" && !key.ctrl) {
-      setConfig((prev) => ({ ...prev, noDns: !prev.noDns }));
-      return;
-    }
-    if (key.name === "z" && !key.ctrl) {
-      setConfig((prev) => ({ ...prev, randSource: !prev.randSource }));
-      return;
-    }
-
-    if (key.shift && key.name === "r") {
-      setFilter((prev) => {
-        const next = new Set(prev);
-        if (next.has("response")) next.delete("response"); else next.add("response");
-        return next;
-      });
-      return;
-    }
-    if (key.shift && key.name === "s") {
-      setFilter((prev) => {
-        const next = new Set(prev);
-        if (next.has("stats")) next.delete("stats"); else next.add("stats");
-        return next;
-      });
-      return;
-    }
-    if (key.shift && key.name === "e") {
-      setFilter((prev) => {
-        const next = new Set(prev);
-        if (next.has("error")) next.delete("error"); else next.add("error");
-        return next;
-      });
-      return;
-    }
-    if (key.shift && key.name === "i") {
-      setFilter((prev) => {
-        const next = new Set(prev);
-        if (next.has("info")) next.delete("info"); else next.add("info");
-        if (next.has("header")) next.delete("header"); else next.add("header");
-        return next;
-      });
-      return;
-    }
-
-    if (key.name >= "1" && key.name <= "6" && !key.ctrl && !key.shift) {
-      const presetIdx = parseInt(key.name) - 1;
-      if (PRESETS[presetIdx]) {
-        setConfig((prev) => ({ ...prev, ...PRESETS[presetIdx].config }));
-      }
-      return;
-    }
-  });
-
-  useEffect(() => {
-    return () => {
-      if (processRef.current) {
-        processRef.current.kill("SIGTERM");
-      }
-      saveConfig(config);
-    };
+  const updateField = useCallback((field: string, value: string) => {
+    const map: Record<string, string> = { dataSize: "dataLength", winSize: "windowSize" };
+    setConfig((prev) => ({ ...prev, [map[field] ?? field]: value }));
   }, []);
 
-  useEffect(() => {
-    saveConfig(config);
-  }, [config]);
+  const toggleFlag = useCallback((flag: keyof HpingConfig["flags"]) => {
+    setConfig((prev) => ({ ...prev, flags: { ...prev.flags, [flag]: !prev.flags[flag] } }));
+  }, []);
 
-  const commandString = buildCommandString(config);
+  useKeyboard((key) => {
+    if (showHelp && (key.name === "escape" || (key.ctrl && key.name === "h"))) { setShowHelp(false); return; }
+    if (key.ctrl && key.name === "c") { stopHping(); saveConfig(config); renderer.destroy(); return; }
+    if (key.ctrl && key.name === "h") { setShowHelp((v) => !v); return; }
+    if (key.ctrl && key.name === "r") { runHping(); return; }
+    if (key.ctrl && key.name === "s") { stopHping(); return; }
+    if (key.ctrl && key.name === "o") { saveLog(); return; }
+    if (key.name === "tab" && !key.shift) { cycleField(1); return; }
+    if ((key.name === "tab" && key.shift) || key.name === "iso_left_tab") { cycleField(-1); return; }
+    if (key.name === "down") { cycleField(1); return; }
+    if (key.name === "up") { cycleField(-1); return; }
+    if (key.name === "f1") { setConfig((p) => ({ ...p, ...PRESETS[0].config })); return; }
+    if (key.name === "f2") { setConfig((p) => ({ ...p, ...PRESETS[1].config })); return; }
+    if (key.name === "f3") { setConfig((p) => ({ ...p, ...PRESETS[2].config })); return; }
+    if (key.name === "f4") { setConfig((p) => ({ ...p, ...PRESETS[3].config })); return; }
+    if (key.name === "f5") { setConfig((p) => ({ ...p, ...PRESETS[4].config })); return; }
+    if (key.name === "f6") { setConfig((p) => ({ ...p, ...PRESETS[5].config })); return; }
+    if (key.ctrl && key.name === "1") { setConfig((p) => ({ ...p, protocol: "tcp" })); return; }
+    if (key.ctrl && key.name === "2") { setConfig((p) => ({ ...p, protocol: "udp" })); return; }
+    if (key.ctrl && key.name === "3") { setConfig((p) => ({ ...p, protocol: "icmp" })); return; }
+    if (key.ctrl && key.name === "y") { toggleFlag("syn"); return; }
+    if (key.ctrl && key.name === "a") { toggleFlag("ack"); return; }
+    if (key.ctrl && key.name === "f") { toggleFlag("fin"); return; }
+    if (key.ctrl && key.name === "d") { toggleFlag("rst"); return; }
+    if (key.ctrl && key.name === "p") { toggleFlag("psh"); return; }
+    if (key.ctrl && key.name === "u") { toggleFlag("urg"); return; }
+    if (key.ctrl && key.name === "g") { setConfig((p) => ({ ...p, flood: !p.flood })); return; }
+    if (key.ctrl && key.name === "k") { setConfig((p) => ({ ...p, fast: !p.fast })); return; }
+    if (key.ctrl && key.name === "t") { setConfig((p) => ({ ...p, traceroute: !p.traceroute })); return; }
+    if (key.ctrl && key.name === "v") { setConfig((p) => ({ ...p, verbose: !p.verbose })); return; }
+    if (key.ctrl && key.name === "n") { setConfig((p) => ({ ...p, noDns: !p.noDns })); return; }
+    if (key.ctrl && key.name === "z") { setConfig((p) => ({ ...p, randSource: !p.randSource })); return; }
+    if (key.shift && key.name === "r") { setFilter((prev) => { const n = new Set(prev); n.has("response") ? n.delete("response") : n.add("response"); return n; }); return; }
+    if (key.shift && key.name === "s") { setFilter((prev) => { const n = new Set(prev); n.has("stats") ? n.delete("stats") : n.add("stats"); return n; }); return; }
+    if (key.shift && key.name === "e") { setFilter((prev) => { const n = new Set(prev); n.has("error") ? n.delete("error") : n.add("error"); return n; }); return; }
+    if (key.shift && key.name === "i") { setFilter((prev) => { const n = new Set(prev); n.has("info") ? n.delete("info") : n.add("info"); n.has("header") ? n.delete("header") : n.add("header"); return n; }); return; }
+  });
+
+  useEffect(() => { () => { if (processRef.current) processRef.current.kill("SIGTERM"); saveConfig(config); }; }, []);
+  useEffect(() => { saveConfig(config); }, [config]);
+
+  const filteredLines = outputLines.filter((l) => filter.has(l.type)).slice(-300);
+  const cmd = buildHpingArgs(config).join(" ");
 
   return (
     <box flexDirection="column" flexGrow={1}>
-      <Header />
-      <PresetBar />
+      {/* Header */}
+      <box flexDirection="row" alignItems="center" paddingX={1} paddingY={0} borderBottom borderStyle="single">
+        <text fg="#00ffff" attributes={TextAttributes.BOLD}>hping-tui</text>
+        <text attributes={TextAttributes.DIM}> — Interactive hping3 Terminal UI</text>
+        <box flexGrow={1} />
+        <text fg="#00ffff">v1.0.4</text>
+      </box>
 
+      {/* Presets */}
+      <box flexDirection="row" gap={2} paddingX={1} paddingY={0}>
+        {PRESETS.map((p) => (
+          <box key={p.name}>
+            <text attributes={TextAttributes.DIM}>{p.key}</text>
+            <text> {p.name} </text>
+          </box>
+        ))}
+      </box>
+
+      {/* Main content */}
       <box flexDirection="row" flexGrow={1}>
-        <box width={38} border borderStyle="single" flexDirection="column">
-          <ConfigPanel
-            config={config}
-            focusedField={focusedField}
-            setConfig={setConfig}
-          />
+        {/* Left panel - Config */}
+        <box width={40} border borderStyle="single" flexDirection="column" paddingX={1}>
+          <box marginBottom={1}>
+            <text attributes={TextAttributes.BOLD}>Configuration</text>
+          </box>
+
+          <box flexDirection="column" gap={0}>
+            <box flexDirection="row">
+              <text width={8} attributes={focusedField === "target" ? TextAttributes.BOLD : TextAttributes.DIM}>Target:</text>
+              <input value={config.target} onChange={(v) => updateField("target", v)} focused={focusedField === "target"} flexGrow={1} placeholder="host" />
+            </box>
+            <box flexDirection="row">
+              <text width={8} attributes={focusedField === "port" ? TextAttributes.BOLD : TextAttributes.DIM}>Port:</text>
+              <input value={config.port} onChange={(v) => updateField("port", v)} focused={focusedField === "port"} flexGrow={1} placeholder="80" />
+            </box>
+            <box flexDirection="row">
+              <text width={8} attributes={focusedField === "count" ? TextAttributes.BOLD : TextAttributes.DIM}>Count:</text>
+              <input value={config.count} onChange={(v) => updateField("count", v)} focused={focusedField === "count"} flexGrow={1} placeholder="inf" />
+            </box>
+            <box flexDirection="row">
+              <text width={8} attributes={focusedField === "interval" ? TextAttributes.BOLD : TextAttributes.DIM}>Intvl:</text>
+              <input value={config.interval} onChange={(v) => updateField("interval", v)} focused={focusedField === "interval"} flexGrow={1} placeholder="1" />
+            </box>
+            <box flexDirection="row">
+              <text width={8} attributes={focusedField === "dataSize" ? TextAttributes.BOLD : TextAttributes.DIM}>Data:</text>
+              <input value={config.dataLength} onChange={(v) => updateField("dataSize", v)} focused={focusedField === "dataSize"} flexGrow={1} placeholder="0" />
+            </box>
+            <box flexDirection="row">
+              <text width={8} attributes={focusedField === "ttl" ? TextAttributes.BOLD : TextAttributes.DIM}>TTL:</text>
+              <input value={config.ttl} onChange={(v) => updateField("ttl", v)} focused={focusedField === "ttl"} flexGrow={1} placeholder="64" />
+            </box>
+            <box flexDirection="row">
+              <text width={8} attributes={focusedField === "winSize" ? TextAttributes.BOLD : TextAttributes.DIM}>Win:</text>
+              <input value={config.windowSize} onChange={(v) => updateField("winSize", v)} focused={focusedField === "winSize"} flexGrow={1} placeholder="" />
+            </box>
+            <box flexDirection="row">
+              <text width={8} attributes={focusedField === "spoofIp" ? TextAttributes.BOLD : TextAttributes.DIM}>Spoof:</text>
+              <input value={config.spoofIp} onChange={(v) => updateField("spoofIp", v)} focused={focusedField === "spoofIp"} flexGrow={1} placeholder="" />
+            </box>
+          </box>
+
+          <box marginTop={1} marginBottom={1}>
+            <text attributes={TextAttributes.DIM}>Protocol:</text>
+          </box>
+          <box flexDirection="row" gap={2} marginBottom={1}>
+            <text attributes={config.protocol === "tcp" ? TextAttributes.BOLD : TextAttributes.DIM}>[Ctrl+1] TCP</text>
+            <text attributes={config.protocol === "udp" ? TextAttributes.BOLD : TextAttributes.DIM}>[Ctrl+2] UDP</text>
+            <text attributes={config.protocol === "icmp" ? TextAttributes.BOLD : TextAttributes.DIM}>[Ctrl+3] ICMP</text>
+          </box>
+
+          <box marginBottom={1}>
+            <text attributes={TextAttributes.DIM}>Flags:</text>
+          </box>
+          <box flexDirection="column" gap={0} marginBottom={1}>
+            <box flexDirection="row" gap={2}>
+              <text attributes={config.flags.syn ? TextAttributes.BOLD : TextAttributes.DIM}>[Ctrl+Y] SYN</text>
+              <text attributes={config.flags.ack ? TextAttributes.BOLD : TextAttributes.DIM}>[Ctrl+A] ACK</text>
+            </box>
+            <box flexDirection="row" gap={2}>
+              <text attributes={config.flags.fin ? TextAttributes.BOLD : TextAttributes.DIM}>[Ctrl+F] FIN</text>
+              <text attributes={config.flags.rst ? TextAttributes.BOLD : TextAttributes.DIM}>[Ctrl+D] RST</text>
+            </box>
+            <box flexDirection="row" gap={2}>
+              <text attributes={config.flags.psh ? TextAttributes.BOLD : TextAttributes.DIM}>[Ctrl+P] PSH</text>
+              <text attributes={config.flags.urg ? TextAttributes.BOLD : TextAttributes.DIM}>[Ctrl+U] URG</text>
+            </box>
+          </box>
+
+          <box marginBottom={1}>
+            <text attributes={TextAttributes.DIM}>Options:</text>
+          </box>
+          <box flexDirection="column" gap={0}>
+            <box flexDirection="row" gap={2}>
+              <text attributes={config.flood ? TextAttributes.BOLD : TextAttributes.DIM}>[Ctrl+G] Flood</text>
+              <text attributes={config.fast ? TextAttributes.BOLD : TextAttributes.DIM}>[Ctrl+K] Fast</text>
+            </box>
+            <box flexDirection="row" gap={2}>
+              <text attributes={config.traceroute ? TextAttributes.BOLD : TextAttributes.DIM}>[Ctrl+T] Trace</text>
+              <text attributes={config.verbose ? TextAttributes.BOLD : TextAttributes.DIM}>[Ctrl+V] Verbose</text>
+            </box>
+            <box flexDirection="row" gap={2}>
+              <text attributes={config.noDns ? TextAttributes.BOLD : TextAttributes.DIM}>[Ctrl+N] NoDNS</text>
+              <text attributes={config.randSource ? TextAttributes.BOLD : TextAttributes.DIM}>[Ctrl+Z] RandSrc</text>
+            </box>
+          </box>
         </box>
 
-        <box flexGrow={1} flexDirection="column">
-          <OutputDisplay
-            lines={outputLines}
-            stats={stats}
-            isRunning={isRunning}
-            filter={filter}
-          />
+        {/* Right panel - Output */}
+        <box flexGrow={1} flexDirection="column" paddingX={1}>
+          <box marginBottom={1} flexDirection="row" justifyContent="space-between">
+            <text attributes={TextAttributes.BOLD}>Output</text>
+            <text attributes={TextAttributes.DIM}> ({filteredLines.length} lines)</text>
+            <text>
+              {isRunning ? <span fg="#00ff00">● Running</span> : <span fg="#888888">○ Stopped</span>}
+            </text>
+          </box>
+
+          <box flexDirection="column" flexGrow={1} border borderStyle="single">
+            <scrollbox flexGrow={1} stickyScroll stickyStart="bottom">
+              {filteredLines.map((line, i) => (
+                <text key={i} fg={lineColor(line.type)}>
+                  <span fg="#555555">[{line.timestamp}]</span> {line.content}
+                </text>
+              ))}
+              {filteredLines.length === 0 && (
+                <text attributes={TextAttributes.DIM}>Press Ctrl+R to start hping3...</text>
+              )}
+            </scrollbox>
+          </box>
+
+          {stats && (
+            <box marginTop={1} flexDirection="column" gap={0}>
+              <box flexDirection="row" gap={4}>
+                <text><span fg="#00ffff">Sent:</span> {stats.packetsSent}</text>
+                <text><span fg="#00ffff">Recv:</span> {stats.packetsReceived}</text>
+                <text><span fg="#00ffff">Loss:</span> {stats.packetLoss}</text>
+                {stats.rttAvg && <text><span fg="#00ffff">RTT:</span> {stats.rttAvg}</text>}
+              </box>
+              {stats.packetLoss && <text fg="#ff8800">{lossBar(stats.packetLoss)}</text>}
+            </box>
+          )}
         </box>
       </box>
 
-      <StatusBar
-        command={commandString}
-        error={error}
-        focusedField={focusedField}
-      />
+      {/* Status bar */}
+      <box flexDirection="column" borderTop borderStyle="single" paddingX={1} paddingY={0}>
+        {error && <text fg="#ff4444">{error}</text>}
+        <box flexDirection="row" justifyContent="space-between">
+          <text fg="#00ff00">hping3 {cmd}</text>
+          <text attributes={TextAttributes.DIM}>Field: <span attributes={TextAttributes.BOLD}>{focusedField}</span></text>
+        </box>
+        <box flexDirection="row" gap={3}>
+          <text attributes={TextAttributes.DIM}><span attributes={TextAttributes.BOLD}>Ctrl+R</span> Start</text>
+          <text attributes={TextAttributes.DIM}><span attributes={TextAttributes.BOLD}>Ctrl+S</span> Stop</text>
+          <text attributes={TextAttributes.DIM}><span attributes={TextAttributes.BOLD}>Ctrl+O</span> Save</text>
+          <text attributes={TextAttributes.DIM}><span attributes={TextAttributes.BOLD}>Ctrl+H</span> Help</text>
+          <text attributes={TextAttributes.DIM}><span attributes={TextAttributes.BOLD}>Tab</span> Next</text>
+          <text attributes={TextAttributes.DIM}><span attributes={TextAttributes.BOLD}>Ctrl+C</span> Quit</text>
+        </box>
+      </box>
 
+      {/* Help overlay */}
       {showHelp && (
-        <box
-          position="absolute"
-          top={3}
-          left={2}
-          right={2}
-          bottom={3}
-        >
-          <HelpOverlay />
+        <box position="absolute" top={3} left={2} right={2} bottom={3} border borderStyle="double" paddingX={2} paddingY={1}>
+          <box marginBottom={1}>
+            <text fg="#00ffff" attributes={TextAttributes.BOLD}>hping-tui — Help</text>
+          </box>
+          <box flexDirection="column" gap={0}>
+            <text fg="#ffff00" attributes={TextAttributes.BOLD}>Controls</text>
+            <box flexDirection="row"><box width={14}><text fg="#00ff00" attributes={TextAttributes.BOLD}>Ctrl+R</text></box><text attributes={TextAttributes.DIM}>Start hping3</text></box>
+            <box flexDirection="row"><box width={14}><text fg="#00ff00" attributes={TextAttributes.BOLD}>Ctrl+S</text></box><text attributes={TextAttributes.DIM}>Stop hping3</text></box>
+            <box flexDirection="row"><box width={14}><text fg="#00ff00" attributes={TextAttributes.BOLD}>Ctrl+O</text></box><text attributes={TextAttributes.DIM}>Save log</text></box>
+            <box flexDirection="row"><box width={14}><text fg="#00ff00" attributes={TextAttributes.BOLD}>Ctrl+C</text></box><text attributes={TextAttributes.DIM}>Quit</text></box>
+            <box flexDirection="row"><box width={14}><text fg="#00ff00" attributes={TextAttributes.BOLD}>Ctrl+H</text></box><text attributes={TextAttributes.DIM}>Toggle help</text></box>
+            <text fg="#ffff00" attributes={TextAttributes.BOLD}>Navigation</text>
+            <box flexDirection="row"><box width={14}><text fg="#00ff00" attributes={TextAttributes.BOLD}>Tab / ↓</text></box><text attributes={TextAttributes.DIM}>Next field</text></box>
+            <box flexDirection="row"><box width={14}><text fg="#00ff00" attributes={TextAttributes.BOLD}>Shift+Tab / ↑</text></box><text attributes={TextAttributes.DIM}>Previous field</text></box>
+            <text fg="#ffff00" attributes={TextAttributes.BOLD}>Protocol</text>
+            <box flexDirection="row"><box width={14}><text fg="#00ff00" attributes={TextAttributes.BOLD}>Ctrl+1/2/3</text></box><text attributes={TextAttributes.DIM}>TCP / UDP / ICMP</text></box>
+            <text fg="#ffff00" attributes={TextAttributes.BOLD}>Presets</text>
+            <box flexDirection="row"><box width={14}><text fg="#00ff00" attributes={TextAttributes.BOLD}>F1-F6</text></box><text attributes={TextAttributes.DIM}>Load preset</text></box>
+            <text fg="#ffff00" attributes={TextAttributes.BOLD}>Flags</text>
+            <box flexDirection="row"><box width={14}><text fg="#00ff00" attributes={TextAttributes.BOLD}>Ctrl+Y/A/F</text></box><text attributes={TextAttributes.DIM}>Toggle SYN/ACK/FIN</text></box>
+            <box flexDirection="row"><box width={14}><text fg="#00ff00" attributes={TextAttributes.BOLD}>Ctrl+D/P/U</text></box><text attributes={TextAttributes.DIM}>Toggle RST/PSH/URG</text></box>
+            <text fg="#ffff00" attributes={TextAttributes.BOLD}>Options</text>
+            <box flexDirection="row"><box width={14}><text fg="#00ff00" attributes={TextAttributes.BOLD}>Ctrl+G/K</text></box><text attributes={TextAttributes.DIM}>Toggle flood/fast</text></box>
+            <box flexDirection="row"><box width={14}><text fg="#00ff00" attributes={TextAttributes.BOLD}>Ctrl+T/V</text></box><text attributes={TextAttributes.DIM}>Toggle trace/verbose</text></box>
+            <box flexDirection="row"><box width={14}><text fg="#00ff00" attributes={TextAttributes.BOLD}>Ctrl+N/Z</text></box><text attributes={TextAttributes.DIM}>Toggle no DNS/rand src</text></box>
+            <text fg="#ffff00" attributes={TextAttributes.BOLD}>Filters</text>
+            <box flexDirection="row"><box width={14}><text fg="#00ff00" attributes={TextAttributes.BOLD}>Shift+R/S</text></box><text attributes={TextAttributes.DIM}>Toggle response/stats</text></box>
+            <box flexDirection="row"><box width={14}><text fg="#00ff00" attributes={TextAttributes.BOLD}>Shift+E/I</text></box><text attributes={TextAttributes.DIM}>Toggle error/info</text></box>
+          </box>
+          <box marginTop={1}>
+            <text attributes={TextAttributes.DIM}>Press <span attributes={TextAttributes.BOLD}>Ctrl+H</span> or <span attributes={TextAttributes.BOLD}>Esc</span> to close</text>
+          </box>
         </box>
       )}
     </box>

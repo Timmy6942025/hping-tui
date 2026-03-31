@@ -109,9 +109,7 @@ const PRESETS: { name: string; icon: string; config: Partial<HpingConfig> }[] = 
   },
 ];
 
-const FIELD_ORDER = ["target", "port", "count", "interval", "dataSize", "ttl", "winSize", "spoofIp"] as const;
-
-const NUMERIC_FIELDS = new Set(["port", "count", "interval", "dataSize", "ttl", "winSize"]);
+const INPUT_FIELDS = ["target", "port", "count", "interval", "dataSize", "ttl", "winSize", "spoofIp"] as const;
 
 function buildHpingArgs(config: HpingConfig): string[] {
   const args: string[] = [];
@@ -221,7 +219,7 @@ function lossBar(loss: string): string {
   if (isNaN(num)) return "";
   const filled = Math.round((num / 100) * 10);
   const empty = 10 - filled;
-  return "█".repeat(filled) + "░".repeat(empty);
+  return "\u2588".repeat(filled) + "\u2591".repeat(empty);
 }
 
 function PresetBar() {
@@ -242,29 +240,21 @@ function PresetBar() {
 function ConfigPanel({
   config,
   focusedField,
-  editingField,
+  setConfig,
 }: {
   config: HpingConfig;
   focusedField: string;
-  editingField: string | null;
+  setConfig: (fn: (prev: HpingConfig) => HpingConfig) => void;
 }) {
-  const fieldLabels: Record<string, string> = {
-    target: "Target",
-    port: "Port",
-    count: "Count",
-    interval: "Interval",
-    dataSize: "Data Size",
-    ttl: "TTL",
-    winSize: "Win Size",
-    spoofIp: "Spoof IP",
-  };
+  const isFocused = (field: string) => focusedField === field;
 
-  const getFieldValue = (id: string): string => {
+  const updateField = (field: string, value: string) => {
     const mapping: Record<string, string> = {
-      dataSize: config.dataLength,
-      winSize: config.windowSize,
+      dataSize: "dataLength",
+      winSize: "windowSize",
     };
-    return mapping[id] ?? (config as Record<string, any>)[id] ?? "";
+    const actualField = mapping[field] ?? field;
+    setConfig((prev) => ({ ...prev, [actualField]: value }));
   };
 
   const protocols: { id: Protocol; label: string; key: string }[] = [
@@ -288,36 +278,103 @@ function ConfigPanel({
         <text attributes={TextAttributes.BOLD}>Configuration</text>
       </box>
 
-      <box flexDirection="column">
-        {FIELD_ORDER.map((fieldId) => (
-          <box key={fieldId} flexDirection="row">
-            <box width={10}>
-              <text
-                attributes={
-                  focusedField === fieldId
-                    ? TextAttributes.BOLD
-                    : TextAttributes.DIM
-                }
-              >
-                {fieldLabels[fieldId]}:
-              </text>
-            </box>
-            <box flexGrow={1}>
-              <text
-                attributes={
-                  editingField === fieldId
-                    ? TextAttributes.BOLD | TextAttributes.UNDERLINE
-                    : focusedField === fieldId
-                    ? TextAttributes.UNDERLINE
-                    : undefined
-                }
-              >
-                {getFieldValue(fieldId)}
-                {editingField === fieldId ? "█" : ""}
-              </text>
-            </box>
-          </box>
-        ))}
+      <box flexDirection="column" gap={0}>
+        <box flexDirection="row">
+          <text width={8} attributes={isFocused("target") ? TextAttributes.BOLD : TextAttributes.DIM}>
+            Target:
+          </text>
+          <input
+            value={config.target}
+            onChange={(v) => updateField("target", v)}
+            focused={isFocused("target")}
+            flexGrow={1}
+            placeholder="host or IP"
+          />
+        </box>
+        <box flexDirection="row">
+          <text width={8} attributes={isFocused("port") ? TextAttributes.BOLD : TextAttributes.DIM}>
+            Port:
+          </text>
+          <input
+            value={config.port}
+            onChange={(v) => updateField("port", v)}
+            focused={isFocused("port")}
+            flexGrow={1}
+            placeholder="80"
+          />
+        </box>
+        <box flexDirection="row">
+          <text width={8} attributes={isFocused("count") ? TextAttributes.BOLD : TextAttributes.DIM}>
+            Count:
+          </text>
+          <input
+            value={config.count}
+            onChange={(v) => updateField("count", v)}
+            focused={isFocused("count")}
+            flexGrow={1}
+            placeholder="inf"
+          />
+        </box>
+        <box flexDirection="row">
+          <text width={8} attributes={isFocused("interval") ? TextAttributes.BOLD : TextAttributes.DIM}>
+            Interval:
+          </text>
+          <input
+            value={config.interval}
+            onChange={(v) => updateField("interval", v)}
+            focused={isFocused("interval")}
+            flexGrow={1}
+            placeholder="1"
+          />
+        </box>
+        <box flexDirection="row">
+          <text width={8} attributes={isFocused("dataSize") ? TextAttributes.BOLD : TextAttributes.DIM}>
+            Data Sz:
+          </text>
+          <input
+            value={config.dataLength}
+            onChange={(v) => updateField("dataSize", v)}
+            focused={isFocused("dataSize")}
+            flexGrow={1}
+            placeholder="0"
+          />
+        </box>
+        <box flexDirection="row">
+          <text width={8} attributes={isFocused("ttl") ? TextAttributes.BOLD : TextAttributes.DIM}>
+            TTL:
+          </text>
+          <input
+            value={config.ttl}
+            onChange={(v) => updateField("ttl", v)}
+            focused={isFocused("ttl")}
+            flexGrow={1}
+            placeholder="64"
+          />
+        </box>
+        <box flexDirection="row">
+          <text width={8} attributes={isFocused("winSize") ? TextAttributes.BOLD : TextAttributes.DIM}>
+            Win Sz:
+          </text>
+          <input
+            value={config.windowSize}
+            onChange={(v) => updateField("winSize", v)}
+            focused={isFocused("winSize")}
+            flexGrow={1}
+            placeholder=""
+          />
+        </box>
+        <box flexDirection="row">
+          <text width={8} attributes={isFocused("spoofIp") ? TextAttributes.BOLD : TextAttributes.DIM}>
+            Spoof:
+          </text>
+          <input
+            value={config.spoofIp}
+            onChange={(v) => updateField("spoofIp", v)}
+            focused={isFocused("spoofIp")}
+            flexGrow={1}
+            placeholder=""
+          />
+        </box>
       </box>
 
       <box marginTop={1} marginBottom={1}>
@@ -342,7 +399,7 @@ function ConfigPanel({
       <box marginBottom={1}>
         <text attributes={TextAttributes.DIM}>Flags:</text>
       </box>
-      <box flexDirection="row" gap={2} marginBottom={1}>
+      <box flexDirection="row" gap={1} marginBottom={1}>
         {flagOptions.map((f) => (
           <box key={f.id}>
             <text
@@ -479,14 +536,12 @@ function OutputDisplay({
 function StatusBar({
   command,
   error,
-  editingField,
+  focusedField,
 }: {
   command: string;
   error: string | null;
-  editingField: string | null;
+  focusedField: string;
 }) {
-  const modeLabel = editingField ? "EDIT" : "NAVIGATE";
-
   return (
     <box
       flexDirection="column"
@@ -503,8 +558,7 @@ function StatusBar({
       <box flexDirection="row" justifyContent="space-between">
         <text fg="#00ff00">{command}</text>
         <text attributes={TextAttributes.DIM}>
-          Mode: <span attributes={TextAttributes.BOLD}>{modeLabel}</span>
-          {editingField && <span> | {editingField}</span>}
+          Field: <span attributes={TextAttributes.BOLD}>{focusedField}</span>
         </text>
       </box>
       <box flexDirection="row" gap={3}>
@@ -522,9 +576,6 @@ function StatusBar({
         </text>
         <text attributes={TextAttributes.DIM}>
           <span attributes={TextAttributes.BOLD}>Tab</span> Next field
-        </text>
-        <text attributes={TextAttributes.DIM}>
-          <span attributes={TextAttributes.BOLD}>Enter</span> Edit
         </text>
         <text attributes={TextAttributes.DIM}>
           <span attributes={TextAttributes.BOLD}>Ctrl+C</span> Quit
@@ -547,7 +598,7 @@ function Header() {
       <text fg="#00ffff" attributes={TextAttributes.BOLD}>hping-tui</text>
       <text attributes={TextAttributes.DIM}> — Interactive hping3 Terminal UI</text>
       <box flexGrow={1} />
-      <text fg="#00ffff">v1.0.2</text>
+      <text fg="#00ffff">v1.0.3</text>
     </box>
   );
 }
@@ -563,18 +614,13 @@ function HelpOverlay() {
     ]},
     { section: "Navigation", items: [
       ["Tab / ↓", "Next input field"],
-      ["↑", "Previous input field"],
-      ["Enter", "Enter edit mode for focused field"],
-      ["Esc", "Exit edit mode / close help"],
+      ["Shift+Tab / ↑", "Previous input field"],
     ]},
-    { section: "Edit mode", items: [
-      ["a-z, 0-9", "Type into field"],
+    { section: "Input fields", items: [
+      ["Type", "Enter text in focused field"],
       ["← →", "Move cursor in field"],
-      ["Backspace", "Delete character before cursor"],
-      ["Del", "Delete character at cursor"],
-      ["Enter", "Confirm and exit edit mode"],
-      ["Tab", "Confirm and move to next field"],
-      ["Esc", "Cancel and exit edit mode"],
+      ["Backspace", "Delete character"],
+      ["Home / End", "Jump to start / end"],
     ]},
     { section: "Protocol", items: [
       ["Ctrl+1", "TCP mode"],
@@ -624,7 +670,7 @@ function HelpOverlay() {
           <text fg="#ffff00" attributes={TextAttributes.BOLD}>{section.section}</text>
           {section.items.map(([key, desc]) => (
             <box key={key} flexDirection="row">
-              <box width={14}>
+              <box width={16}>
                 <text fg="#00ff00" attributes={TextAttributes.BOLD}>{key}</text>
               </box>
               <text attributes={TextAttributes.DIM}>{desc}</text>
@@ -667,14 +713,11 @@ function App() {
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [focusedField, setFocusedField] = useState("target");
-  const [editingField, setEditingField] = useState<string | null>(null);
-  const [cursorPos, setCursorPos] = useState(0);
   const [showHelp, setShowHelp] = useState(false);
   const [filter, setFilter] = useState<Set<string>>(
     new Set(["response", "stats", "header", "info", "traceroute", "error"])
   );
   const processRef = useRef<ChildProcess | null>(null);
-  const savedValueRef = useRef<string>("");
   const renderer = useRenderer();
 
   const runHping = useCallback(() => {
@@ -789,36 +832,13 @@ function App() {
     }
   }, [outputLines]);
 
-  const startEditing = useCallback((field: string) => {
-    const mapping: Record<string, string> = {
-      dataSize: config.dataLength,
-      winSize: config.windowSize,
-    };
-    savedValueRef.current = mapping[field] ?? (config as Record<string, any>)[field] ?? "";
-    setCursorPos(savedValueRef.current.length);
-    setEditingField(field);
-  }, [config]);
-
-  const stopEditing = useCallback((confirm: boolean) => {
-    if (!confirm) {
-      setConfig((prev) => ({ ...prev, [editingField!]: savedValueRef.current }));
-    }
-    setEditingField(null);
-    setCursorPos(0);
-  }, [editingField]);
-
-  const updateField = useCallback((value: string) => {
-    const field = editingField!;
-    const isNumeric = NUMERIC_FIELDS.has(field);
-    if (isNumeric && value !== "" && !/^\d+$/.test(value)) return;
-
-    const mapping: Record<string, string> = {
-      dataSize: "dataLength",
-      winSize: "windowSize",
-    };
-    const actualField = mapping[field] ?? field;
-    setConfig((prev) => ({ ...prev, [actualField]: value }));
-  }, [editingField]);
+  const cycleField = useCallback((direction: 1 | -1) => {
+    setFocusedField((prev) => {
+      const idx = INPUT_FIELDS.indexOf(prev as typeof INPUT_FIELDS[number]);
+      const nextIdx = (idx + direction + INPUT_FIELDS.length) % INPUT_FIELDS.length;
+      return INPUT_FIELDS[nextIdx];
+    });
+  }, []);
 
   useKeyboard((key) => {
     if (showHelp && (key.ctrl && key.name === "h" || key.name === "escape")) {
@@ -838,64 +858,6 @@ function App() {
       return;
     }
 
-    if (editingField) {
-      if (key.name === "escape") {
-        stopEditing(false);
-        return;
-      }
-
-      if (key.name === "enter") {
-        stopEditing(true);
-        return;
-      }
-
-      if (key.name === "tab") {
-        stopEditing(true);
-        const idx = FIELD_ORDER.indexOf(editingField as any);
-        const nextIdx = (idx + 1) % FIELD_ORDER.length;
-        setFocusedField(FIELD_ORDER[nextIdx]);
-        setEditingField(FIELD_ORDER[nextIdx]);
-        return;
-      }
-
-      if (key.name === "left") {
-        setCursorPos((p) => Math.max(0, p - 1));
-        return;
-      }
-
-      if (key.name === "right") {
-        const val = (config as Record<string, any>)[editingField] ?? "";
-        setCursorPos((p) => Math.min(val.length, p + 1));
-        return;
-      }
-
-      if (key.name === "backspace") {
-        const val = (config as Record<string, any>)[editingField] ?? "";
-        if (cursorPos > 0) {
-          updateField(val.slice(0, cursorPos - 1) + val.slice(cursorPos));
-          setCursorPos((p) => p - 1);
-        }
-        return;
-      }
-
-      if (key.name === "delete") {
-        const val = (config as Record<string, any>)[editingField] ?? "";
-        if (cursorPos < val.length) {
-          updateField(val.slice(0, cursorPos) + val.slice(cursorPos + 1));
-        }
-        return;
-      }
-
-      if (key.sequence && key.sequence.length === 1) {
-        const val = (config as Record<string, any>)[editingField] ?? "";
-        updateField(val.slice(0, cursorPos) + key.sequence + val.slice(cursorPos));
-        setCursorPos((p) => p + 1);
-        return;
-      }
-
-      return;
-    }
-
     if (key.ctrl && key.name === "r") {
       runHping();
       return;
@@ -911,22 +873,23 @@ function App() {
       return;
     }
 
-    if (key.name === "tab" || key.name === "down") {
-      const idx = FIELD_ORDER.indexOf(focusedField as any);
-      const nextIdx = (idx + 1) % FIELD_ORDER.length;
-      setFocusedField(FIELD_ORDER[nextIdx]);
+    if (key.name === "tab" && !key.shift) {
+      cycleField(1);
+      return;
+    }
+
+    if ((key.name === "tab" && key.shift) || key.name === "iso_left_tab") {
+      cycleField(-1);
+      return;
+    }
+
+    if (key.name === "down") {
+      cycleField(1);
       return;
     }
 
     if (key.name === "up") {
-      const idx = FIELD_ORDER.indexOf(focusedField as any);
-      const prevIdx = (idx - 1 + FIELD_ORDER.length) % FIELD_ORDER.length;
-      setFocusedField(FIELD_ORDER[prevIdx]);
-      return;
-    }
-
-    if (key.name === "enter") {
-      startEditing(focusedField);
+      cycleField(-1);
       return;
     }
 
@@ -1075,11 +1038,11 @@ function App() {
       <PresetBar />
 
       <box flexDirection="row" flexGrow={1}>
-        <box width={36} border borderStyle="single" flexDirection="column">
+        <box width={38} border borderStyle="single" flexDirection="column">
           <ConfigPanel
             config={config}
             focusedField={focusedField}
-            editingField={editingField}
+            setConfig={setConfig}
           />
         </box>
 
@@ -1096,7 +1059,7 @@ function App() {
       <StatusBar
         command={commandString}
         error={error}
-        editingField={editingField}
+        focusedField={focusedField}
       />
 
       {showHelp && (

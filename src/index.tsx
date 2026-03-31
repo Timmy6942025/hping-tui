@@ -65,10 +65,10 @@ const DEFAULT_CONFIG: HpingConfig = {
 const PRESETS: { name: string; key: string; config: Partial<HpingConfig> }[] = [
   { name: "SYN Scan", key: "F1", config: { protocol: "tcp", flags: { syn: true, ack: false, fin: false, rst: false, psh: false, urg: false }, port: "80", count: "10" } },
   { name: "Firewall", key: "F2", config: { protocol: "tcp", flags: { syn: true, ack: true, fin: false, rst: false, psh: false, urg: false }, port: "443", count: "20" } },
-  { name: "ICMP", key: "F3", config: { protocol: "icmp", flags: { syn: false, ack: false, fin: false, rst: false, psh: false, urg: false }, port: "", count: "10" } },
+  { name: "ICMP Ping", key: "F3", config: { protocol: "icmp", flags: { syn: false, ack: false, fin: false, rst: false, psh: false, urg: false }, port: "", count: "10" } },
   { name: "Traceroute", key: "F4", config: { protocol: "tcp", traceroute: true, flags: { syn: true, ack: false, fin: false, rst: false, psh: false, urg: false }, port: "80", count: "30" } },
-  { name: "UDP", key: "F5", config: { protocol: "udp", flags: { syn: false, ack: false, fin: false, rst: false, psh: false, urg: false }, port: "53", count: "10" } },
-  { name: "XMAS", key: "F6", config: { protocol: "tcp", flags: { syn: false, ack: false, fin: true, rst: false, psh: true, urg: true }, port: "80", count: "5" } },
+  { name: "UDP Test", key: "F5", config: { protocol: "udp", flags: { syn: false, ack: false, fin: false, rst: false, psh: false, urg: false }, port: "53", count: "10" } },
+  { name: "XMAS Scan", key: "F6", config: { protocol: "tcp", flags: { syn: false, ack: false, fin: true, rst: false, psh: true, urg: true }, port: "80", count: "5" } },
 ];
 
 const INPUT_FIELDS = ["target", "port", "count", "interval", "dataSize", "ttl", "winSize", "spoofIp"] as const;
@@ -229,10 +229,6 @@ function App() {
     setConfig((prev) => ({ ...prev, [map[field] ?? field]: value }));
   }, []);
 
-  const toggleFlag = useCallback((flag: keyof HpingConfig["flags"]) => {
-    setConfig((prev) => ({ ...prev, flags: { ...prev.flags, [flag]: !prev.flags[flag] } }));
-  }, []);
-
   useKeyboard((key) => {
     if (showHelp && (key.name === "escape" || (key.ctrl && key.name === "h"))) { setShowHelp(false); return; }
     if (key.ctrl && key.name === "c") { stopHping(); saveConfig(config); renderer.destroy(); return; }
@@ -253,12 +249,12 @@ function App() {
     if (key.ctrl && key.name === "1") { setConfig((p) => ({ ...p, protocol: "tcp" })); return; }
     if (key.ctrl && key.name === "2") { setConfig((p) => ({ ...p, protocol: "udp" })); return; }
     if (key.ctrl && key.name === "3") { setConfig((p) => ({ ...p, protocol: "icmp" })); return; }
-    if (key.ctrl && key.name === "y") { toggleFlag("syn"); return; }
-    if (key.ctrl && key.name === "a") { toggleFlag("ack"); return; }
-    if (key.ctrl && key.name === "f") { toggleFlag("fin"); return; }
-    if (key.ctrl && key.name === "d") { toggleFlag("rst"); return; }
-    if (key.ctrl && key.name === "p") { toggleFlag("psh"); return; }
-    if (key.ctrl && key.name === "u") { toggleFlag("urg"); return; }
+    if (key.ctrl && key.name === "y") { setConfig((p) => ({ ...p, flags: { ...p.flags, syn: !p.flags.syn } })); return; }
+    if (key.ctrl && key.name === "a") { setConfig((p) => ({ ...p, flags: { ...p.flags, ack: !p.flags.ack } })); return; }
+    if (key.ctrl && key.name === "f") { setConfig((p) => ({ ...p, flags: { ...p.flags, fin: !p.flags.fin } })); return; }
+    if (key.ctrl && key.name === "d") { setConfig((p) => ({ ...p, flags: { ...p.flags, rst: !p.flags.rst } })); return; }
+    if (key.ctrl && key.name === "p") { setConfig((p) => ({ ...p, flags: { ...p.flags, psh: !p.flags.psh } })); return; }
+    if (key.ctrl && key.name === "u") { setConfig((p) => ({ ...p, flags: { ...p.flags, urg: !p.flags.urg } })); return; }
     if (key.ctrl && key.name === "g") { setConfig((p) => ({ ...p, flood: !p.flood })); return; }
     if (key.ctrl && key.name === "k") { setConfig((p) => ({ ...p, fast: !p.fast })); return; }
     if (key.ctrl && key.name === "t") { setConfig((p) => ({ ...p, traceroute: !p.traceroute })); return; }
@@ -284,7 +280,7 @@ function App() {
         <text fg="#00ffff" attributes={TextAttributes.BOLD}>hping-tui</text>
         <text attributes={TextAttributes.DIM}> — Interactive hping3 Terminal UI</text>
         <box flexGrow={1} />
-        <text fg="#00ffff">v1.0.4</text>
+        <text fg="#00ffff">v1.0.5</text>
       </box>
 
       {/* Presets */}
